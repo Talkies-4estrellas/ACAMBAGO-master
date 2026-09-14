@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Package, ArrowLeft, Search } from "lucide-react";
 import ProductsReel from "@/components/ui/ProductsReel";
 import DragScroll from "@/components/ui/DragScroll";
+import CategoryChips from "./CategoryChips";
 import { BUSINESS_CATEGORIES } from "@/types";
 
 export const revalidate = 60;
@@ -46,6 +47,29 @@ async function getBestSellers(category?: string, q?: string): Promise<ProductIte
   if (q) rows = rows.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
 
   return rows.map((p) => ({ ...p, image: p.image_url ?? FALLBACK_IMAGE }));
+}
+
+// Categorías con al menos un producto disponible ahora mismo — para no
+// mostrar pastillas que lleven a un callejón sin salida ("no hay productos
+// en X"). Independiente del filtro/orden/búsqueda activos: siempre refleja
+// el catálogo completo, para que las demás pastillas sigan siendo
+// alcanzables sin perder de vista qué categorías sí tienen contenido.
+async function getCategoriesWithProducts(): Promise<Set<string>> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  if (!url || url.includes("your-project") || url === "https://placeholder.supabase.co") return new Set();
+  try {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("products")
+      .select("businesses!inner(category, is_approved, is_active)")
+      .eq("is_available", true)
+      .eq("businesses.is_approved", true)
+      .eq("businesses.is_active", true);
+
+    const categories = ((data ?? []) as unknown as { businesses: { category: string } }[]).map((p) => p.businesses.category);
+    return new Set(categories);
+  } catch { return new Set(); }
 }
 
 async function getAllProducts(category?: string, sort: Sort = "recientes", q?: string): Promise<ProductItem[]> {
@@ -100,7 +124,11 @@ export default async function AllProductsPage({
   const category = params.category;
   const q = params.q?.trim() || undefined;
   const sort: Sort = SORT_OPTIONS.some((o) => o.value === params.sort) ? (params.sort as Sort) : "recientes";
-  const items = await getAllProducts(category, sort, q);
+  const [items, categoriesWithProducts] = await Promise.all([
+    getAllProducts(category, sort, q),
+    getCategoriesWithProducts(),
+  ]);
+  const visibleCategories = BUSINESS_CATEGORIES.filter((c) => categoriesWithProducts.has(c));
 
   return (
     <div className="max-w-screen-2xl mx-auto px-4 py-8">
@@ -118,60 +146,44 @@ export default async function AllProductsPage({
         </div>
       </div>
 
-      <form action="/productos" method="get" className="relative mb-4 max-w-sm">
-        {category && <input type="hidden" name="category" value={category} />}
-        {sort !== "recientes" && <input type="hidden" name="sort" value={sort} />}
-        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder="Buscar en el catálogo..."
-          className="input pl-9"
-        />
-      </form>
+      <div className="card p-4 sm:p-5 mb-6 space-y-4">
+        <form action="/productos" method="get" className="relative max-w-md">
+          {category && <input type="hidden" name="category" value={category} />}
+          {sort !== "recientes" && <input type="hidden" name="sort" value={sort} />}
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            name="q"
+            defaultValue={q ?? ""}
+            placeholder="Buscar en el catálogo..."
+            className="input pl-9"
+          />
+        </form>
 
-      <DragScroll className="flex gap-2 overflow-x-auto pb-2 mb-3">
-        <Link
-          href={{ pathname: "/productos", query: { ...(sort !== "recientes" && { sort }), ...(q && { q }) } }}
-          className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-all ${
-            !category
-              ? "bg-brand-500 text-white border-brand-500"
-              : "bg-white text-slate-600 border-slate-300 hover:border-brand-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/20 dark:hover:border-brand-400"
-          }`}
-        >
-          Todas
-        </Link>
-        {BUSINESS_CATEGORIES.map((c) => (
-          <Link
-            key={c}
-            href={{ pathname: "/productos", query: { category: c, ...(sort !== "recientes" && { sort }), ...(q && { q }) } }}
-            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-all ${
-              category === c
-                ? "bg-brand-500 text-white border-brand-500"
-                : "bg-white text-slate-600 border-slate-300 hover:border-brand-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/20 dark:hover:border-brand-400"
-            }`}
-          >
-            {c}
-          </Link>
-        ))}
-      </DragScroll>
+        <div>
+          <p className="text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-wide mb-2">Categoría</p>
+          <CategoryChips categories={visibleCategories} activeCategory={category} sort={sort} q={q} />
+        </div>
 
-      <DragScroll className="flex gap-2 overflow-x-auto pb-2 mb-6">
-        {SORT_OPTIONS.map((o) => (
-          <Link
-            key={o.value}
-            href={{ pathname: "/productos", query: { ...(category && { category }), ...(o.value !== "recientes" && { sort: o.value }), ...(q && { q }) } }}
-            className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
-              sort === o.value
-                ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white"
-                : "bg-white text-slate-500 border-slate-200 hover:border-slate-400 dark:bg-white/5 dark:text-gray-400 dark:border-white/10 dark:hover:border-white/30"
-            }`}
-          >
-            {o.label}
-          </Link>
-        ))}
-      </DragScroll>
+        <div>
+          <p className="text-xs font-semibold text-slate-400 dark:text-gray-500 uppercase tracking-wide mb-2">Ordenar por</p>
+          <DragScroll className="flex gap-2 overflow-x-auto pb-1">
+            {SORT_OPTIONS.map((o) => (
+              <Link
+                key={o.value}
+                href={{ pathname: "/productos", query: { ...(category && { category }), ...(o.value !== "recientes" && { sort: o.value }), ...(q && { q }) } }}
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  sort === o.value
+                    ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white"
+                    : "bg-white text-slate-500 border-slate-200 hover:border-slate-400 dark:bg-white/5 dark:text-gray-400 dark:border-white/10 dark:hover:border-white/30"
+                }`}
+              >
+                {o.label}
+              </Link>
+            ))}
+          </DragScroll>
+        </div>
+      </div>
 
       {items.length === 0 ? (
         <div className="card p-14 text-center">
