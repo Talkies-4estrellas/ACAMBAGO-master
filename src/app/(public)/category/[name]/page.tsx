@@ -1,23 +1,69 @@
 import { createClient } from "@/lib/supabase/server";
 import BusinessCard from "@/components/business/BusinessCard";
+import ProductsReel from "@/components/ui/ProductsReel";
 import { Business } from "@/types";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export const revalidate = 60;
 
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&q=80";
+
+interface ReelItem {
+  id: string; name: string; price: number; image: string;
+  business_id: string; business_name: string; business_category: string;
+  stock_quantity: number | null; is_available: boolean;
+}
+
+// Productos con esta categoría entre las suyas propias, sin importar la
+// categoría principal de su tienda — una tienda de ropa puede vender un
+// producto de "Accesorios" y sí debe aparecer aquí.
+async function getProductsForCategory(categoryName: string): Promise<ReelItem[]> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("products")
+      .select("*, businesses!inner(id, name, category, is_approved, is_active)")
+      .eq("is_available", true)
+      .eq("businesses.is_approved", true)
+      .eq("businesses.is_active", true)
+      .contains("categories", [categoryName])
+      .order("created_at", { ascending: false })
+      .limit(60);
+
+    return ((data ?? []) as unknown as {
+      id: string; name: string; price: number; image_url: string | null; image_urls: string[] | null;
+      business_id: string; businesses: { name: string; category: string };
+      stock_quantity: number | null; is_available: boolean;
+    }[]).map((p) => ({
+      id: p.id,
+      name: p.name,
+      price: Number(p.price),
+      image: p.image_url || p.image_urls?.[0] || FALLBACK_IMAGE,
+      business_id: p.business_id,
+      business_name: p.businesses.name,
+      business_category: p.businesses.category,
+      stock_quantity: p.stock_quantity,
+      is_available: p.is_available,
+    }));
+  } catch { return []; }
+}
+
 export default async function CategoryPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
   const decodedName = decodeURIComponent(name);
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("businesses")
-    .select("*")
-    .eq("is_approved", true)
-    .eq("is_active", true)
-    .eq("category", decodedName)
-    .order("rating_avg", { ascending: false });
+  const [{ data }, products] = await Promise.all([
+    supabase
+      .from("businesses")
+      .select("*")
+      .eq("is_approved", true)
+      .eq("is_active", true)
+      .eq("category", decodedName)
+      .order("rating_avg", { ascending: false }),
+    getProductsForCategory(decodedName),
+  ]);
 
   const businesses = (data ?? []) as Business[];
 
@@ -41,6 +87,13 @@ export default async function CategoryPage({ params }: { params: Promise<{ name:
           {businesses.map((b) => (
             <BusinessCard key={b.id} business={b} />
           ))}
+        </div>
+      )}
+
+      {products.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Productos en {decodedName}</h2>
+          <ProductsReel grid items={products} cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" />
         </div>
       )}
     </div>

@@ -32,6 +32,13 @@ interface ProductItem {
   stock_quantity: number | null; is_available: boolean;
 }
 
+// Categorías de un producto: las propias si ya tiene (supabase/product-
+// categories.sql corrido), o la de su tienda como respaldo para filas que
+// todavía no se hayan migrado. Un producto puede pertenecer a varias.
+function productCategories(p: { categories?: string[] | null; business_category: string }): string[] {
+  return p.categories?.length ? p.categories : [p.business_category];
+}
+
 // "Más vendidos" viene de un RPC aparte (ranking real por ventas, no una
 // columna de `products`), así que no se puede pedir con el mismo
 // select+order que el resto de los filtros. Se resuelve categoría/búsqueda
@@ -42,8 +49,8 @@ async function getBestSellers(category?: string, q?: string): Promise<ProductIte
   const supabase = await createClient();
   const { data } = await supabase.rpc("get_featured_products", { p_limit: PRODUCTS_LIMIT });
 
-  let rows = (data ?? []) as (ProductItem & { image_url: string | null })[];
-  if (category) rows = rows.filter((p) => p.business_category === category);
+  let rows = (data ?? []) as (ProductItem & { image_url: string | null; categories?: string[] | null })[];
+  if (category) rows = rows.filter((p) => productCategories(p).includes(category));
   if (q) rows = rows.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
 
   return rows.map((p) => ({ ...p, image: p.image_url ?? FALLBACK_IMAGE }));
@@ -62,12 +69,13 @@ async function getCategoriesWithProducts(): Promise<Set<string>> {
     const supabase = await createClient();
     const { data } = await supabase
       .from("products")
-      .select("businesses!inner(category, is_approved, is_active)")
+      .select("categories, businesses!inner(category, is_approved, is_active)")
       .eq("is_available", true)
       .eq("businesses.is_approved", true)
       .eq("businesses.is_active", true);
 
-    const categories = ((data ?? []) as unknown as { businesses: { category: string } }[]).map((p) => p.businesses.category);
+    const categories = ((data ?? []) as unknown as { categories: string[] | null; businesses: { category: string } }[])
+      .flatMap((p) => productCategories({ categories: p.categories, business_category: p.businesses.category }));
     return new Set(categories);
   } catch { return new Set(); }
 }
@@ -87,7 +95,7 @@ async function getAllProducts(category?: string, sort: Sort = "recientes", q?: s
       .eq("businesses.is_approved", true)
       .eq("businesses.is_active", true);
 
-    if (category) query = query.eq("businesses.category", category);
+    if (category) query = query.contains("categories", [category]);
     if (q) query = query.ilike("name", `%${q}%`);
 
     const orderColumn = sort === "precio_asc" || sort === "precio_desc" ? "price" : "created_at";

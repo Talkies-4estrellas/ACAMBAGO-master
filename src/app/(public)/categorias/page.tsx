@@ -17,12 +17,15 @@ async function getCategoriesWithProducts(): Promise<Set<string>> {
     const supabase = await createClient();
     const { data } = await supabase
       .from("products")
-      .select("businesses!inner(category, is_approved, is_active)")
+      .select("categories, businesses!inner(category, is_approved, is_active)")
       .eq("is_available", true)
       .eq("businesses.is_approved", true)
       .eq("businesses.is_active", true);
 
-    const categories = ((data ?? []) as unknown as { businesses: { category: string } }[]).map((p) => p.businesses.category);
+    // Categorías propias del producto si ya las tiene; si no, la de su
+    // tienda como respaldo (filas de antes de correr product-categories.sql).
+    const categories = ((data ?? []) as unknown as { categories: string[] | null; businesses: { category: string } }[])
+      .flatMap((p) => (p.categories?.length ? p.categories : [p.businesses.category]));
     return new Set(categories);
   } catch { return new Set(); }
 }

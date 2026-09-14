@@ -74,6 +74,11 @@ export interface Product {
   image_urls?: string[];
   is_available: boolean;
   stock_quantity?: number;
+  // Categorías propias del producto (puede tener varias, ej. un accesorio
+  // vendido por una tienda de ropa), independientes de businesses.category.
+  // Opcional en el tipo porque puede venir vacío en filas viejas si
+  // supabase/product-categories.sql todavía no se corrió en este entorno.
+  categories?: string[];
   created_at: string;
   updated_at: string;
 }

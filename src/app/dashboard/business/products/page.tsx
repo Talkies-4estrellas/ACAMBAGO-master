@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { createClient } from "@/lib/supabase/client";
-import { Product } from "@/types";
+import { Product, BUSINESS_CATEGORIES } from "@/types";
 import { Plus, Pencil, Trash2, Package, Upload, X, AlertCircle, PauseCircle, PlayCircle } from "lucide-react";
 import Image from "next/image";
 import toast from "react-hot-toast";
@@ -36,12 +36,14 @@ export default function ProductsPage() {
   const { user, isLoaded } = useUser();
   const [products, setProducts] = useState<Product[]>([]);
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [businessCategory, setBusinessCategory] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [images, setImages] = useState<ImageSlot[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -64,6 +66,7 @@ export default function ProductsPage() {
         return;
       }
       setBusinessId(biz.id);
+      setBusinessCategory(biz.category);
       const { data } = await supabase.from("products").select("*").eq("business_id", biz.id).order("created_at", { ascending: false });
       setProducts((data ?? []) as Product[]);
       setLoaded(true);
@@ -74,6 +77,7 @@ export default function ProductsPage() {
   const openNew = () => {
     if (IS_DEMO) { toast("Conecta Supabase para agregar productos reales", { icon: "ℹ️" }); return; }
     setEditing(null); setName(""); setDescription(""); setPrice(""); setStock("");
+    setCategories(businessCategory ? [businessCategory] : []);
     setImages([]); setShowForm(true);
   };
 
@@ -82,9 +86,14 @@ export default function ProductsPage() {
     setEditing(p); setName(p.name); setDescription(p.description ?? "");
     setPrice(String(p.price));
     setStock(p.stock_quantity != null ? String(p.stock_quantity) : "");
+    setCategories(p.categories?.length ? p.categories : businessCategory ? [businessCategory] : []);
     const existing = p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [];
     setImages(existing.map((url) => ({ url, preview: url })));
     setShowForm(true);
+  };
+
+  const toggleCategory = (c: string) => {
+    setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
   };
 
   const addFiles = (fileList: FileList | null) => {
@@ -107,6 +116,10 @@ export default function ProductsPage() {
     e.preventDefault();
     if (!businessId) {
       toast.error("No se encontró tu negocio. Recarga la página.");
+      return;
+    }
+    if (categories.length === 0) {
+      toast.error("Elige al menos una categoría para el producto");
       return;
     }
     setSaving(true);
@@ -136,16 +149,16 @@ export default function ProductsPage() {
     const stock_quantity = stock === "" ? null : parseInt(stock, 10);
 
     if (editing) {
-      const { error } = await supabase.from("products").update({ name, description, price: parseFloat(price), image_url, image_urls, stock_quantity }).eq("id", editing.id);
+      const { error } = await supabase.from("products").update({ name, description, price: parseFloat(price), image_url, image_urls, stock_quantity, categories }).eq("id", editing.id);
       if (error) {
         toast.error(`Error al actualizar: ${error.message}`);
       } else {
-        setProducts((prev) => prev.map((p) => p.id === editing.id ? { ...p, name, description, price: parseFloat(price), image_url, image_urls, stock_quantity: stock_quantity ?? undefined } : p));
+        setProducts((prev) => prev.map((p) => p.id === editing.id ? { ...p, name, description, price: parseFloat(price), image_url, image_urls, stock_quantity: stock_quantity ?? undefined, categories } : p));
         toast.success("Producto actualizado");
         setShowForm(false);
       }
     } else {
-      const { data, error } = await supabase.from("products").insert({ business_id: businessId, name, description, price: parseFloat(price), image_url, image_urls, stock_quantity }).select().single();
+      const { data, error } = await supabase.from("products").insert({ business_id: businessId, name, description, price: parseFloat(price), image_url, image_urls, stock_quantity, categories }).select().single();
       if (error) {
         toast.error(`Error al guardar: ${error.message}`);
       } else if (data) {
@@ -296,6 +309,26 @@ export default function ProductsPage() {
                 <label className="label">Cantidad en inventario</label>
                 <input type="number" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} className="input" placeholder="Sin control de inventario" />
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Déjalo vacío si no quieres llevar el conteo; se descuenta solo con cada venta.</p>
+              </div>
+              <div>
+                <label className="label">Categorías del producto *</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {BUSINESS_CATEGORIES.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => toggleCategory(c)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        categories.includes(c)
+                          ? "bg-brand-500 text-white border-brand-500"
+                          : "bg-white text-slate-600 border-slate-300 hover:border-brand-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/20 dark:hover:border-brand-400"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">Elige una o varias; así aparece en cada categoría aunque no sea el giro principal de tu tienda.</p>
               </div>
 
               <div className="flex gap-3 pt-2">
