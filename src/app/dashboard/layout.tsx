@@ -81,7 +81,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
 
         <UserInfo />
-        <DashboardNav />
+        <DashboardNav pendingApproval={pendingApproval} />
 
         <div className="p-3 border-t border-slate-200 dark:border-white/10 space-y-1">
           <LogoutButton />
@@ -110,13 +110,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
         {/* Mobile bottom nav */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 border-t border-slate-200 dark:border-white/10 flex z-40 bg-white/95 dark:bg-[#040a14]/95 backdrop-blur-md">
-          {[
-            { href: "/dashboard/business",              label: "Inicio",    icon: LayoutDashboard },
-            { href: "/dashboard/business/products",     label: "Productos", icon: Package },
-            { href: "/dashboard/business/orders",       label: "Pedidos",   icon: ShoppingBag },
-            { href: "/dashboard/business/coupons",      label: "Cupones",   icon: Ticket },
-            { href: "/dashboard/business/settings",     label: "Config.",   icon: Settings },
-          ].map(({ href, label, icon: Icon }) => (
+          {(pendingApproval
+            ? [{ href: "/dashboard/business/settings", label: "Config.", icon: Settings }]
+            : [
+                { href: "/dashboard/business",              label: "Inicio",    icon: LayoutDashboard },
+                { href: "/dashboard/business/products",     label: "Productos", icon: Package },
+                { href: "/dashboard/business/orders",       label: "Pedidos",   icon: ShoppingBag },
+                { href: "/dashboard/business/coupons",      label: "Cupones",   icon: Ticket },
+                { href: "/dashboard/business/settings",     label: "Config.",   icon: Settings },
+              ]
+          ).map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href}
               className="flex-1 flex flex-col items-center gap-1 py-2.5 text-slate-400 hover:text-brand-600 dark:text-gray-500 dark:hover:text-brand-400 transition-colors">
               <Icon className="w-5 h-5" />

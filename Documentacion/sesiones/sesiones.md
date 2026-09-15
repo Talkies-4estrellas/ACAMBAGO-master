@@ -18,7 +18,7 @@
 | 2026-09-09 | [sesion-09-09-2026.md](./sesion-09-09-2026.md) | Auditoría completa de la app, hallazgo de seguridad en RLS, arreglos de Clerk, catálogo con ubicación/stock/búsqueda por producto |
 | 2026-09-11 | [sesion-11-09-2026.md](./sesion-11-09-2026.md) | Panel de admin a fondo (seguridad, moderación, notificaciones), incidente de rol de admin, reorganización de `/perfil` |
 | 2026-09-14 | [sesion-14-09-2026.md](./sesion-14-09-2026.md) | El link "Productos" nunca llevaba a su catálogo; filtro por categoría, orden, buscador, `/menos-de-500`/`/mas-vendidos` consolidadas ahí, primer commit real del repo, pastillas de categoría con orden alfabético/historial, y categoría propia por producto (puede tener varias) |
-| 2026-09-15 | [sesion-15-09-2026.md](./sesion-15-09-2026.md) | Se corrieron las 3 migraciones pendientes; nueva forma de revisar/escribir la base real vía la API REST de Supabase sin el dashboard; bug de `CREATE OR REPLACE FUNCTION` corregido; placeholder de contraseña en inglés arreglado; repaso completo del panel de cliente (9 pestañas) con el pendiente del `BellRing` resuelto; seguridad: el rol ya no sube a "business" hasta que se aprueba la tienda |
+| 2026-09-15 | [sesion-15-09-2026.md](./sesion-15-09-2026.md) | Se corrieron las 3 migraciones pendientes; nueva forma de revisar/escribir la base real vía la API REST de Supabase sin el dashboard; bug de `CREATE OR REPLACE FUNCTION` corregido; placeholder de contraseña en inglés arreglado; repaso completo del panel de cliente (9 pestañas) con el pendiente del `BellRing` resuelto; seguridad: el rol ya no sube a "business" hasta que se aprueba la tienda, y el menú del panel ya no revela su estructura mientras está pendiente |
 
 ---
 
@@ -31,5 +31,5 @@
 - Confirmar que el selector de categorías del formulario de producto se ve y guarda bien, con la cuenta real que ya tiene tienda propia.
 - Decidir si forzar contraseña también en cuentas de Google (configuración de Clerk Dashboard) — el usuario decidió dejarlo como está por ahora.
 - Verificar en vivo (con sesión real de admin) que "Mi panel" siga ganándole al switcher de vendedor si ese admin también es dueño de una tienda.
-- Seguir con la lista de "cosas de seguridad" del usuario — el rol prematuro era solo el primer punto.
+- Seguir con la lista de "cosas de seguridad" del usuario — el rol prematuro y el menú del panel eran solo los primeros dos puntos, faltan los siguientes.
 - Hacer `git push` — el remoto ya está conectado; confirmar que los commits recientes y los cambios de hoy queden subidos.

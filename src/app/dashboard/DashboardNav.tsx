@@ -18,12 +18,19 @@ const navItems = [
   { href: "/dashboard/business/settings",       label: "Configuración",   icon: Settings },
 ];
 
-export default function DashboardNav() {
+export default function DashboardNav({ pendingApproval = false }: { pendingApproval?: boolean }) {
   const pathname = usePathname();
+  // Mientras la tienda está pendiente de aprobación, PendingApprovalGate ya
+  // bloquea el contenido de todo lo que no sea /settings — pero el menú
+  // seguía listando el resto (Productos, Pedidos, Reseñas, Estadísticas...),
+  // revelando la estructura completa del panel a alguien que ni siquiera ha
+  // sido aprobado todavía. Con la tienda pendiente, solo se muestra
+  // Configuración.
+  const items = pendingApproval ? navItems.filter((i) => i.href === "/dashboard/business/settings") : navItems;
 
   return (
     <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-      {navItems.map(({ href, label, icon: Icon }) => {
+      {items.map(({ href, label, icon: Icon }) => {
         const isActive =
           href === "/dashboard/business"
             ? pathname === href
