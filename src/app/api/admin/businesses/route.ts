@@ -55,6 +55,13 @@ export async function POST(request: Request) {
     if (action === "approve") {
       const { error } = await supabase.from("businesses").update({ is_approved: true, is_active: true }).eq("id", businessId);
       if (error) return NextResponse.json({ error: "No se pudo aprobar" }, { status: 500 });
+
+      // El rol sube a "business" justo aqui, al aprobar — no antes (ver
+      // /api/businesses). No baja a un admin que aprueba su propia tienda.
+      const { data: ownerProfile } = await supabase.from("profiles").select("role").eq("id", business.owner_id).single();
+      if (ownerProfile?.role !== "admin") {
+        await supabase.from("profiles").update({ role: "business" }).eq("id", business.owner_id);
+      }
     } else if (action === "suspend") {
       const { error } = await supabase.from("businesses").update({ is_active: false }).eq("id", businessId);
       if (error) return NextResponse.json({ error: "No se pudo suspender" }, { status: 500 });

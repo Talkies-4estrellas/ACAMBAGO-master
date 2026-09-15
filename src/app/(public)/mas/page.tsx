@@ -47,7 +47,10 @@ function Section({ title, rows }: { title: string; rows: Row[] }) {
 
 export default function MasPage() {
   const router = useRouter();
-  const { userId, name, role, loading } = useAuthUser();
+  const { userId, name, role, hasBusiness, loading } = useAuthUser();
+  // hasBusiness cubre tiendas pendientes de aprobación (rol todavía
+  // "client"), no solo las ya aprobadas ("business"). Se excluye admin.
+  const actingAsSeller = role !== "admin" && (role === "business" || hasBusiness);
   const { signOut } = useClerk();
 
   useEffect(() => {
@@ -105,7 +108,7 @@ export default function MasPage() {
         <Section
           title="Vender"
           rows={
-            role === "business"
+            actingAsSeller
               ? [{ icon: Store, label: "Ir a mi tienda", href: "/dashboard/business" }]
               : [{ icon: Store, label: "Publica tu tienda gratis", href: "/perfil/crear-tienda", badge: "Nuevo" }]
           }

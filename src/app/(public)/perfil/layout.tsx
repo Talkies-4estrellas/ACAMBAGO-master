@@ -21,7 +21,7 @@ const navItems = [
 
 export default function PerfilLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { userId, role } = useAuthUser();
+  const { userId, role, hasBusiness } = useAuthUser();
 
   // "Crear tienda" es un flujo aparte (no un tab de esta seccion): se deja
   // sin el sidebar de cuenta para no confundirlo con una pestana mas.
@@ -39,7 +39,9 @@ export default function PerfilLayout({ children }: { children: React.ReactNode }
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6">
         {/* Sidebar */}
         <aside className="lg:sticky lg:top-6 lg:self-start space-y-3">
-          {role === "business" && <AccountModeSwitcher />}
+          {/* hasBusiness cubre tiendas pendientes de aprobación (rol
+              todavía "client"), no solo las ya aprobadas ("business"). */}
+          {(role === "business" || hasBusiness) && <AccountModeSwitcher />}
 
           <nav className="card p-2 flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
             {navItems.map(({ href, label, icon: Icon, exact }) => {

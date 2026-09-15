@@ -55,11 +55,12 @@ export default function UserInfo({ variant = "sidebar" }: { variant?: "sidebar" 
       setName(profileName);
       setRole(profileRole);
 
-      if (profileRole === "business") {
-        const { businesses: owned, active } = await loadOwnedBusinesses(supabase, user.id);
-        setBusinesses(owned);
-        setActiveBusiness(active);
-      }
+      // Se cargan las tiendas propias sin importar el rol: una tienda
+      // pendiente de aprobación no sube el rol a "business" todavía, pero
+      // "Mi tienda" debe seguir alcanzable mientras se revisa la solicitud.
+      const { businesses: owned, active } = await loadOwnedBusinesses(supabase, user.id);
+      setBusinesses(owned);
+      setActiveBusiness(active);
     };
     load();
     // Se vuelve a leer en cada cambio de ruta, para que un rol recien
@@ -91,7 +92,14 @@ export default function UserInfo({ variant = "sidebar" }: { variant?: "sidebar" 
   // aparece al tocar, igual que ya pasaba con el selector de tiendas.
   const canOpen = isTopbar || hasMultiple;
 
+  // "Ver mi tienda"/"Compartir mi tienda" solo tienen sentido una vez
+  // aprobada (la ficha pública da 404 mientras está pendiente), así que se
+  // quedan atados al rol real. El switcher Mi cuenta/Mi tienda, en cambio,
+  // también debe verse con una tienda pendiente (rol todavía "client").
   const canPreviewStore = role === "business" && !!activeBusiness?.id;
+  // Se excluye admin: un admin que también sea dueño de una tienda no debe
+  // verse ni actuar como vendedor por eso.
+  const actingAsSeller = role !== "admin" && (role === "business" || businesses.length > 0);
 
   return (
     <div
@@ -111,7 +119,7 @@ export default function UserInfo({ variant = "sidebar" }: { variant?: "sidebar" 
           </Link>
         ) : (
           <div className="w-9 h-9 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-            {role === "business"
+            {actingAsSeller
               ? <Store className="w-4 h-4 text-brand-600 dark:text-brand-400" />
               : <User className="w-4 h-4 text-brand-600 dark:text-brand-400" />
             }
@@ -137,7 +145,7 @@ export default function UserInfo({ variant = "sidebar" }: { variant?: "sidebar" 
         </button>
       </div>
 
-      {!isTopbar && role === "business" && (
+      {!isTopbar && actingAsSeller && (
         <div className="mt-2">
           <AccountModeSwitcher compact />
         </div>
@@ -154,7 +162,7 @@ export default function UserInfo({ variant = "sidebar" }: { variant?: "sidebar" 
 
       {open && canOpen && (
         <div className="absolute left-3 right-3 top-full mt-1 z-50 bg-white dark:bg-[#0a1628] border border-slate-200 dark:border-white/10 rounded-xl shadow-lg overflow-hidden">
-          {isTopbar && role === "business" && (
+          {isTopbar && actingAsSeller && (
             <div className="p-2 space-y-1.5 border-b border-slate-100 dark:border-white/10">
               <AccountModeSwitcher compact />
               {canPreviewStore && (

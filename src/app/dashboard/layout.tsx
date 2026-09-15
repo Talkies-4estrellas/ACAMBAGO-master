@@ -37,11 +37,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
       .eq("id", userId)
       .single();
 
-    if (profile?.role !== "business" && profile?.role !== "admin") {
-      redirect("/");
-    }
-
-    if (profile.role === "business") {
+    // El acceso al panel ya no depende de profiles.role === "business" —
+    // ese rol solo se pone al aprobar (ver /api/admin/businesses), así que
+    // alguien con una tienda todavía pendiente (rol sigue "client") también
+    // debe poder entrar aquí y ver PendingApprovalGate. Los admins entran
+    // siempre, sin ligarse a ningún negocio propio.
+    if (profile?.role !== "admin") {
       const { data: businesses } = await supabase
         .from("businesses")
         .select("id, is_approved")

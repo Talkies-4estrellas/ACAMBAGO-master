@@ -20,10 +20,15 @@ export default function Navbar() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [activeBusinessId, setActiveBusinessId] = useState<string | null>(null);
   const navRef = useRef<HTMLElement>(null);
-  const { userId, name, role, loading } = useAuthUser();
+  const { userId, name, role, hasBusiness, loading } = useAuthUser();
   const { signOut } = useClerk();
   const router = useRouter();
   const user = userId ? { id: userId } : null;
+  // hasBusiness cubre tiendas pendientes de aprobación (rol todavía
+  // "client"), no solo las ya aprobadas ("business"). Se excluye admin: un
+  // admin que también sea dueño de una tienda sigue viendo "Mi panel", no
+  // el switcher de vendedor.
+  const actingAsSeller = role !== "admin" && (role === "business" || hasBusiness);
 
   const handleLogout = async () => {
     if (getDemoMode()) { stopDemoMode(); return; }
@@ -35,13 +40,13 @@ export default function Navbar() {
   const dashboardHref = role === "admin" ? "/admin" : "/dashboard/business";
 
   useEffect(() => {
-    if (role !== "business" || !userId || getDemoMode()) return;
+    if (!actingAsSeller || !userId || getDemoMode()) return;
     const supabase = createClient();
     loadOwnedBusinesses(supabase, userId).then(({ businesses, active }) => {
       setBusinesses(businesses);
       setActiveBusinessId(active?.id ?? null);
     });
-  }, [role, userId]);
+  }, [actingAsSeller, userId]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -95,7 +100,7 @@ export default function Navbar() {
           {/* Mobile: theme + notificaciones + hamburger (el carrito ya vive en la barra inferior) */}
           <div className="flex items-center gap-1">
             <ThemeToggle />
-            {user && <NotificationBell href={role === "business" ? "/dashboard/business/notificaciones" : "/perfil/notificaciones"} />}
+            {user && <NotificationBell href={actingAsSeller ? "/dashboard/business/notificaciones" : "/perfil/notificaciones"} />}
             <button
               className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
               onClick={() => setMenuOpen(!menuOpen)}
@@ -130,7 +135,7 @@ export default function Navbar() {
                   className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10 transition-colors"
                 >
                   <div className="w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-                    {role === "business"
+                    {actingAsSeller
                       ? <Store className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                       : <User className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                     }
@@ -141,7 +146,7 @@ export default function Navbar() {
                   </div>
                 </Link>
 
-                {role === "business" && businesses.length > 0 && (
+                {actingAsSeller && businesses.length > 0 && (
                   <div className="px-1">
                     <p className="text-[10px] font-semibold uppercase text-slate-400 px-2 pt-1 pb-1">Cambiar de tienda</p>
                     {businesses.map((b) => {
@@ -178,7 +183,7 @@ export default function Navbar() {
                   </div>
                 )}
 
-                {role !== "client" && (
+                {(role === "admin" || actingAsSeller) && (
                   <Link
                     href={dashboardHref}
                     className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-gray-200 dark:hover:bg-white/10"

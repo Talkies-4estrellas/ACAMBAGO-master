@@ -9,20 +9,24 @@ import { useAuthUser } from "@/lib/hooks/use-auth-user";
 export default function MobileNav() {
   const pathname = usePathname();
   const { count, openCart, isCartOpen } = useCart();
-  const { userId, role } = useAuthUser();
+  const { userId, role, hasBusiness } = useAuthUser();
+  // hasBusiness cubre tiendas pendientes de aprobación (rol todavía
+  // "client"), no solo las ya aprobadas ("business"). Se excluye admin: ya
+  // se maneja aparte abajo (perfilHref lo checa primero).
+  const actingAsSeller = role !== "admin" && (role === "business" || hasBusiness);
 
   const perfilHref = userId
-    ? role === "admin" ? "/admin" : role === "client" ? "/mas" : "/dashboard/business"
+    ? role === "admin" ? "/admin" : actingAsSeller ? "/dashboard/business" : "/mas"
     : "/login";
 
-  const PerfilIcon = !userId ? User : role === "business" ? Store : Menu;
+  const PerfilIcon = !userId ? User : actingAsSeller ? Store : Menu;
 
   const tabs = [
     { id: "home",    label: "Inicio",   icon: Home,         href: "/",       isCart: false },
     { id: "search",  label: "Buscar",   icon: Search,       href: "/?q=",    isCart: false },
     { id: "cupones", label: "Cupones",  icon: Ticket,       href: "/coupons",isCart: false },
     { id: "cart",    label: "Carrito",  icon: ShoppingCart, href: null,      isCart: true  },
-    { id: "perfil",  label: userId ? (role === "business" ? "Tienda" : "Más") : "Entrar", icon: PerfilIcon, href: perfilHref, isCart: false },
+    { id: "perfil",  label: userId ? (actingAsSeller ? "Tienda" : "Más") : "Entrar", icon: PerfilIcon, href: perfilHref, isCart: false },
   ];
 
   return (

@@ -24,10 +24,17 @@ export default function DesktopSidebar({ collapsed }: { collapsed: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const { count, openCart } = useCart();
-  const { userId, name, role, loading } = useAuthUser();
+  const { userId, name, role, hasBusiness, loading } = useAuthUser();
   const { signOut } = useClerk();
   const user = userId ? { id: userId } : null;
   const inStore = pathname.startsWith("/dashboard");
+  // hasBusiness cubre tiendas pendientes de aprobación (rol todavía
+  // "client"), no solo las ya aprobadas ("business") — "Mi tienda" debe
+  // seguir alcanzable mientras se revisa la solicitud. Se excluye admin a
+  // propósito: un admin que también sea dueño de una tienda (pasó de
+  // verdad, ver sesión 2026-09-11) sigue viendo "Mi panel", nunca el
+  // switcher de vendedor — su identidad de admin manda siempre.
+  const actingAsSeller = role !== "admin" && (role === "business" || hasBusiness);
 
   const handleLogout = async () => {
     if (getDemoMode()) { stopDemoMode(); return; }
@@ -48,7 +55,7 @@ export default function DesktopSidebar({ collapsed }: { collapsed: boolean }) {
             <Image src="/acomdi.png" alt="Acom-Di" width={collapsed ? 36 : 80} height={32} className={collapsed ? "h-7 w-auto object-contain" : "h-8 w-auto object-contain"} priority />
           </div>
         </Link>
-        {user && role === "business" && <NotificationBell href="/dashboard/business/notificaciones" />}
+        {user && actingAsSeller && <NotificationBell href="/dashboard/business/notificaciones" />}
       </div>
 
       {/* Nav items */}
@@ -114,7 +121,7 @@ export default function DesktopSidebar({ collapsed }: { collapsed: boolean }) {
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors ${collapsed ? "justify-center" : ""}`}
               >
                 <div className="w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-                  {role === "business"
+                  {actingAsSeller
                     ? <Store className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                     : <User className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                   }
@@ -127,8 +134,8 @@ export default function DesktopSidebar({ collapsed }: { collapsed: boolean }) {
                 )}
               </Link>
 
-              {/* Selector Mi cuenta / Mi tienda (solo para vendedores) */}
-              {role === "business" ? (
+              {/* Selector Mi cuenta / Mi tienda (para vendedores, aprobados o con solicitud pendiente) */}
+              {actingAsSeller ? (
                 collapsed ? (
                   <div className="grid grid-cols-1 gap-1">
                     <Link

@@ -6,6 +6,15 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { esES } from "@clerk/localizations";
 import DemoModeGuard from "@/components/ui/DemoModeGuard";
 
+// @clerk/localizations deja esta cadena sin traducir en es-ES (queda `undefined`,
+// así que Clerk cae al inglés "Create a password") — sigue así incluso en la
+// última versión publicada de la librería (4.17.0), no es algo de este proyecto.
+// Se sobreescribe encima de esES en vez de esperar a que Clerk la traduzca.
+const clerkLocalization = {
+  ...esES,
+  formFieldInputPlaceholder__signUpPassword: "Crea una contraseña",
+};
+
 export const metadata: Metadata = {
   title: "Acom-Di - Revista de Acámbaro",
   description:
@@ -19,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider localization={esES}>
+    <ClerkProvider localization={clerkLocalization}>
       <html lang="es" suppressHydrationWarning>
         <head>
           <script

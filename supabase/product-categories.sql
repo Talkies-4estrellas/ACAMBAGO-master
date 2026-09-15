@@ -24,6 +24,13 @@ CREATE INDEX IF NOT EXISTS idx_products_categories ON public.products USING GIN 
 -- paso se incluyen stock_quantity/is_available por si featured-products-
 -- stock.sql todavía no se había corrido en este entorno (misma firma final,
 -- sin importar cuál de las dos migraciones se corrió primero).
+--
+-- Postgres no deja cambiar las columnas de retorno de una función con
+-- CREATE OR REPLACE si ya existe con otra forma (error 42P13) — hay que
+-- borrarla primero. DROP ... IF EXISTS la deja lista para correr este
+-- archivo más de una vez sin error.
+DROP FUNCTION IF EXISTS public.get_featured_products(INT);
+
 CREATE OR REPLACE FUNCTION public.get_featured_products(p_limit INT DEFAULT 15)
 RETURNS TABLE (
   id                UUID,

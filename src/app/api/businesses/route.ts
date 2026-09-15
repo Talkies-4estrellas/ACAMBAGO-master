@@ -41,13 +41,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Sube el rol a "business" solo si no es ya algo con mas privilegio
-    // (admin) — antes esto se hacia sin condicion y una cuenta admin que
-    // creara una tienda perdia su rol de admin sin ningun aviso.
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).single();
-    if (profile?.role !== "admin") {
-      await supabase.from("profiles").update({ role: "business" }).eq("id", userId);
-    }
+    // El rol se queda en "client" (o "admin") hasta que un admin apruebe
+    // esta tienda — ver /api/admin/businesses, acción "approve". Antes se
+    // subia a "business" aqui mismo, al crearla, lo que hacia que el dueño
+    // se viera y actuara como vendedor (badge, notificaciones, switcher de
+    // tienda) antes de que nadie revisara nada.
 
     // Avisa a todos los admins que hay una tienda nueva esperando aprobacion
     // (aparece en la campana de /admin). Best-effort: si falla, no debe
