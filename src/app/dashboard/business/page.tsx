@@ -240,7 +240,15 @@ export default function DashboardPage() {
           <Link href={`/business/${business?.id ?? "demo"}`} className="text-xs text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
             Ver perfil público →
           </Link>
-          {!IS_DEMO && user?.id && <NotificationBellDropdown userId={user.id} viewAllHref="/dashboard/business/notificaciones" />}
+          {/* Solo escritorio: en móvil ya está la campana de la barra
+              superior (dashboard/layout.tsx), fija en todas las pantallas
+              del panel, no solo en Resumen — mostrar las dos ahí sería
+              redundante. */}
+          {!IS_DEMO && user?.id && (
+            <div className="hidden lg:block">
+              <NotificationBellDropdown userId={user.id} viewAllHref="/dashboard/business/notificaciones" />
+            </div>
+          )}
         </div>
       </div>
 

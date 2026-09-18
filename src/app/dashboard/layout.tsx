@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import LogoutButton from "@/components/ui/LogoutButton";
 import UserInfo from "@/components/ui/UserInfo";
+import NotificationBell from "@/components/ui/NotificationBell";
 import DashboardNav from "./DashboardNav";
 import DemoBanner from "@/components/ui/DemoBanner";
 import PendingApprovalGate from "./PendingApprovalGate";
@@ -105,6 +106,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </span>
           </div>
           <div className="flex items-center gap-1 min-w-0 flex-shrink justify-end">
+            <NotificationBell href="/dashboard/business/notificaciones" />
             <UserInfo variant="topbar" />
           </div>
         </div>
