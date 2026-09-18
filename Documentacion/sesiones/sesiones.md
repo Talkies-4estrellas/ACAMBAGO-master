@@ -24,7 +24,7 @@
 ---
 
 **Pendientes activos** (detalle en la última entrada donde se encontró cada uno, y en `CLAUDE.md`):
-- **Correr `supabase/business-branches.sql`** en el SQL Editor de Supabase — sin esto, la función de Sucursales no funciona.
+- **Correr `supabase/business-branches.sql` y `supabase/business-approved-at.sql`** en el SQL Editor de Supabase (confirmado vía la API REST que ninguna se ha corrido) — sin esto, la función de Sucursales no funciona y el cartel "Negocio aprobado" nunca vence.
 - Decidir y resolver el hallazgo de seguridad de RLS/llave anónima.
 - Investigar el "✓ Negocio aprobado" incorrecto en `dashboard/business/page.tsx`.
 - Decidir si "Menos de $500" necesita de vuelta un tope real de precio, o se deja como orden simple.
