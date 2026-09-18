@@ -19,12 +19,11 @@
 | 2026-09-11 | [sesion-11-09-2026.md](./sesion-11-09-2026.md) | Panel de admin a fondo (seguridad, moderación, notificaciones), incidente de rol de admin, reorganización de `/perfil` |
 | 2026-09-14 | [sesion-14-09-2026.md](./sesion-14-09-2026.md) | El link "Productos" nunca llevaba a su catálogo; filtro por categoría, orden, buscador, `/menos-de-500`/`/mas-vendidos` consolidadas ahí, primer commit real del repo, pastillas de categoría con orden alfabético/historial, y categoría propia por producto (puede tener varias) |
 | 2026-09-15 | [sesion-15-09-2026.md](./sesion-15-09-2026.md) | Se corrieron las 3 migraciones pendientes; nueva forma de revisar/escribir la base real vía la API REST de Supabase sin el dashboard; bug de `CREATE OR REPLACE FUNCTION` corregido; placeholder de contraseña en inglés arreglado; repaso completo del panel de cliente (9 pestañas) con el pendiente del `BellRing` resuelto; seguridad: el rol ya no sube a "business" hasta que se aprueba la tienda, y el menú del panel ya no revela su estructura mientras está pendiente |
-| 2026-09-18 | [sesion-18-09-2026.md](./sesion-18-09-2026.md) | El admin ya solo tiene `/admin` (sin lado de comprador/tienda) y maneja su propio perfil ahí mismo; ajustes al menú de tienda pendiente; bug real de parpadeo de íconos en la barra pública corregido; tienda de prueba aprobada y panel revisado a fondo; función nueva de Sucursales (ubicaciones ligadas a la tienda principal); logo real en vez del ícono genérico en el sidebar |
+| 2026-09-18 | [sesion-18-09-2026.md](./sesion-18-09-2026.md) | El admin ya solo tiene `/admin`; ajustes al menú de tienda pendiente; parpadeo de íconos corregido; función nueva de Sucursales; logo real en el sidebar; cartel de "Negocio aprobado" con vencimiento a 1 semana; campanas de notificación estandarizadas (ícono lleno + número) en las 3 del proyecto, sin duplicados; empezó la revisión del panel apartado por apartado (Resumen, Productos) |
 
 ---
 
 **Pendientes activos** (detalle en la última entrada donde se encontró cada uno, y en `CLAUDE.md`):
-- **Correr `supabase/business-branches.sql` y `supabase/business-approved-at.sql`** en el SQL Editor de Supabase (confirmado vía la API REST que ninguna se ha corrido) — sin esto, la función de Sucursales no funciona y el cartel "Negocio aprobado" nunca vence.
 - Decidir y resolver el hallazgo de seguridad de RLS/llave anónima.
 - Investigar el "✓ Negocio aprobado" incorrecto en `dashboard/business/page.tsx`.
 - Decidir si "Menos de $500" necesita de vuelta un tope real de precio, o se deja como orden simple.
@@ -35,4 +34,5 @@
 - Verificar en vivo (con sesión real de admin) que el redirect a `/admin` funcione y que "Mi panel" siga ganándole al switcher de vendedor si ese admin también es dueño de una tienda.
 - Considerar si el desplegable de `UserInfo.tsx` (sidebar de escritorio) debería abrirse también con una sola tienda, para que "Agregar otra tienda"/"Agregar nueva sucursal" sean alcanzables desde ahí.
 - Seguir con la lista de "cosas de seguridad" del usuario — faltan los puntos después del rol prematuro y el menú del panel.
+- Seguir la revisión apartado por apartado del panel de vendedor — quedan Pedidos, Cupones, Escáner QR, Mensajes, Preguntas, Notificaciones, Reseñas, Estadísticas y Configuración.
 - Hacer `git push` — el remoto ya está conectado; confirmar que los commits recientes y los cambios de hoy queden subidos.
