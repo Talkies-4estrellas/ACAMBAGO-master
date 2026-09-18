@@ -180,6 +180,17 @@ export default function Navbar() {
                     >
                       <Plus className="w-3.5 h-3.5 flex-shrink-0" /> Agregar otra tienda
                     </Link>
+                    {/* Una sucursal solo tiene sentido para una tienda ya
+                        aprobada (comparte productos/cupones con ella). */}
+                    {businesses.find((b) => b.id === activeBusinessId)?.is_approved && (
+                      <Link
+                        href="/perfil/crear-sucursal"
+                        className="flex items-center gap-2 py-2 px-3 rounded-xl text-sm text-brand-600 dark:text-brand-400 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <Plus className="w-3.5 h-3.5 flex-shrink-0" /> Agregar nueva sucursal
+                      </Link>
+                    )}
                   </div>
                 )}
 

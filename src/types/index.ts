@@ -64,6 +64,20 @@ export interface Business {
   updated_at: string;
 }
 
+// Una ubicación adicional del mismo negocio: comparte productos, cupones,
+// categoría, logo, etc. con la tienda "padre" (business_id) — solo cambian
+// nombre, dirección, coordenadas y, opcionalmente, un WhatsApp propio.
+export interface BusinessBranch {
+  id: string;
+  business_id: string;
+  name: string;
+  address: string;
+  latitude?: number;
+  longitude?: number;
+  whatsapp?: string;
+  created_at: string;
+}
+
 export interface Product {
   id: string;
   business_id: string;

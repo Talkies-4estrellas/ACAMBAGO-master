@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { LayoutDashboard, Store, Users, Eye, LogOut } from "lucide-react";
+import { LayoutDashboard, Store, Users, User, Eye, LogOut } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
 const tabs = [
-  { id: "resumen",  label: "Resumen",  icon: LayoutDashboard },
-  { id: "negocios", label: "Negocios", icon: Store },
-  { id: "usuarios", label: "Usuarios", icon: Users },
+  { id: "resumen",  label: "Resumen",   icon: LayoutDashboard },
+  { id: "negocios", label: "Negocios",  icon: Store },
+  { id: "usuarios", label: "Usuarios",  icon: Users },
+  { id: "perfil",   label: "Mi perfil", icon: User },
 ];
 
 export default function AdminNav() {

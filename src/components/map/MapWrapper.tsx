@@ -9,8 +9,10 @@ const BusinessMapGoogle = dynamic(() => import("./BusinessMapGoogle"), { ssr: fa
 // Fallback: OpenStreetMap/Leaflet (sin key, siempre disponible)
 const BusinessMapLeaflet = dynamic(() => import("./BusinessMap"), { ssr: false });
 
+type MapPin = Business & { businessId?: string };
+
 interface Props {
-  businesses: Business[];
+  businesses: MapPin[];
   /** ID de negocio a centrar/resaltar (viene de "Ver en el mapa" de una tarjeta). */
   focusId?: string;
 }

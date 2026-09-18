@@ -5,8 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Business, BUSINESS_CATEGORIES } from "@/types";
-import { Settings, MapPin, Save, LocateFixed, CreditCard, CheckCircle2, Plus, Store, Truck } from "lucide-react";
+import { Business, BusinessBranch, BUSINESS_CATEGORIES } from "@/types";
+import { Settings, MapPin, Save, LocateFixed, CreditCard, CheckCircle2, Plus, Store, Truck, Trash2 } from "lucide-react";
 import { loadOwnedBusinesses } from "@/lib/current-business";
 import CategorySelect from "@/components/ui/CategorySelect";
 import ImageCropUpload from "@/components/ui/ImageCropUpload";
@@ -27,6 +27,8 @@ function SettingsContent() {
   const [bannerBlob, setBannerBlob] = useState<Blob | null>(null);
   const [locating, setLocating] = useState(false);
   const [connectingStripe, setConnectingStripe] = useState(false);
+  const [branches, setBranches] = useState<BusinessBranch[]>([]);
+  const [deletingBranchId, setDeletingBranchId] = useState<string | null>(null);
   const supabase = createClient();
 
   const handleUseLocation = () => {
@@ -63,6 +65,26 @@ function SettingsContent() {
     };
     load();
   }, [isLoaded, user?.id]);
+
+  useEffect(() => {
+    if (IS_DEMO || !business.id) return;
+    supabase.from("business_branches").select("*").eq("business_id", business.id).order("created_at", { ascending: true }).then(({ data }) => {
+      setBranches((data ?? []) as BusinessBranch[]);
+    });
+  }, [business.id]);
+
+  const handleDeleteBranch = async (id: string) => {
+    if (!confirm("¿Eliminar esta sucursal?")) return;
+    setDeletingBranchId(id);
+    const res = await fetch(`/api/business-branches?id=${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setBranches((prev) => prev.filter((b) => b.id !== id));
+      toast.success("Sucursal eliminada");
+    } else {
+      toast.error("No se pudo eliminar la sucursal");
+    }
+    setDeletingBranchId(null);
+  };
 
   useEffect(() => {
     const returnBusinessId = searchParams.get("business_id");
@@ -188,9 +210,16 @@ function SettingsContent() {
             <p className="text-slate-500 dark:text-slate-400 text-sm">Actualiza la información de tu negocio</p>
           </div>
         </div>
-        <Link href="/perfil/crear-tienda" className="btn-secondary flex items-center gap-2 text-sm flex-shrink-0">
-          <Plus className="w-4 h-4" /> Agregar otra tienda
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          {business.is_approved && (
+            <Link href="/perfil/crear-sucursal" className="btn-secondary flex items-center gap-2 text-sm flex-shrink-0">
+              <Plus className="w-4 h-4" /> Agregar nueva sucursal
+            </Link>
+          )}
+          <Link href="/perfil/crear-tienda" className="btn-secondary flex items-center gap-2 text-sm flex-shrink-0">
+            <Plus className="w-4 h-4" /> Agregar otra tienda
+          </Link>
+        </div>
       </div>
 
       <form onSubmit={handleSave} className="space-y-5">
@@ -288,6 +317,49 @@ function SettingsContent() {
             </div>
           </details>
         </div>
+
+        {business.is_approved && (
+          <div className="card p-6 space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                <Store className="w-4 h-4 text-brand-600" />
+                Sucursales
+              </h2>
+              <Link href="/perfil/crear-sucursal" className="btn-secondary flex items-center gap-2 text-xs flex-shrink-0">
+                <Plus className="w-3.5 h-3.5" /> Agregar sucursal
+              </Link>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Otras ubicaciones de esta misma tienda. Comparten tus productos y cupones, solo cambia la dirección.
+            </p>
+            {branches.length === 0 ? (
+              <p className="text-sm text-slate-400 dark:text-slate-500">Todavía no tienes sucursales.</p>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-white/10">
+                {branches.map((b) => (
+                  <div key={b.id} className="flex items-center gap-3 py-3">
+                    <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 dark:text-white truncate">{b.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{b.address}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBranch(b.id)}
+                      disabled={deletingBranchId === b.id}
+                      className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex-shrink-0"
+                      title="Eliminar sucursal"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="card p-6 space-y-4">
           <h2 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
-import { Business, Product, Coupon, Review } from "@/types";
+import { Business, BusinessBranch, Product, Coupon, Review } from "@/types";
 import StarRating from "@/components/business/StarRating";
 import CouponCard from "@/components/coupons/CouponCard";
 import ReviewSection from "./ReviewSection";
@@ -51,11 +51,12 @@ async function getSupabaseData(id: string) {
     const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
 
-    const [bizRes, productsRes, couponsRes, reviewsRes, completion, responseTime] = await Promise.all([
+    const [bizRes, productsRes, couponsRes, reviewsRes, branchesRes, completion, responseTime] = await Promise.all([
       supabase.from("businesses").select("*").eq("id", id).eq("is_approved", true).single(),
       supabase.from("products").select("*").eq("business_id", id).eq("is_available", true),
       supabase.from("coupons").select("*").eq("business_id", id).eq("is_active", true),
       supabase.from("reviews").select("*, profiles(name, avatar_url)").eq("business_id", id).order("created_at", { ascending: false }),
+      supabase.from("business_branches").select("*").eq("business_id", id).order("created_at", { ascending: true }),
       getOrderCompletionRate(supabase, id),
       getAverageResponseTime(supabase, id),
     ]);
@@ -67,6 +68,7 @@ async function getSupabaseData(id: string) {
       products: (productsRes.data ?? []) as Product[],
       coupons: (couponsRes.data ?? []) as Coupon[],
       reviews: (reviewsRes.data ?? []) as Review[],
+      branches: (branchesRes.data ?? []) as BusinessBranch[],
       completionRate: completion.rate,
       responseTimeLabel: responseTime.label,
     };
@@ -118,7 +120,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
   const data = await getSupabaseData(id);
   if (!data) notFound();
 
-  const { business, products, coupons, reviews, completionRate, responseTimeLabel } = data;
+  const { business, products, coupons, reviews, branches, completionRate, responseTimeLabel } = data;
   const canReview = userId ? await hasDeliveredOrder(business.id, userId) : false;
 
   return (
@@ -184,6 +186,22 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
             <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 mt-3">
               <MapPin className="w-4 h-4 text-brand-500" />{business.address}
             </div>
+            {branches.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                <p className="text-xs font-semibold uppercase text-gray-400 dark:text-gray-500">Otras sucursales</p>
+                {branches.map((b) => (
+                  <div key={b.id} className="flex items-center justify-between gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <MapPin className="w-4 h-4 text-brand-500 flex-shrink-0" />
+                      <span className="truncate"><span className="font-medium text-gray-700 dark:text-gray-300">{b.name}:</span> {b.address}</span>
+                    </span>
+                    <Link href={`/map?business=${b.id}`} className="text-brand-600 dark:text-brand-400 text-xs font-medium flex-shrink-0 hover:underline">
+                      Ver en el mapa
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

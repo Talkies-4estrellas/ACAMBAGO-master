@@ -10,7 +10,7 @@ import DashboardNav from "./DashboardNav";
 import DemoBanner from "@/components/ui/DemoBanner";
 import PendingApprovalGate from "./PendingApprovalGate";
 import OrderAlertListener from "@/components/ui/OrderAlertListener";
-import { Store, ShoppingBag, LayoutDashboard, Package, Ticket, Settings } from "lucide-react";
+import { Store, ShoppingBag, LayoutDashboard, Package, Ticket, Settings, Home, Search } from "lucide-react";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const IS_DEMO = !SUPABASE_URL || SUPABASE_URL.includes("your-project") || SUPABASE_URL === "https://placeholder.supabase.co";
@@ -37,27 +37,31 @@ export default async function DashboardLayout({ children }: { children: React.Re
       .eq("id", userId)
       .single();
 
+    // El admin ya no tiene lado de tienda: su único panel es /admin. Antes
+    // entraba aquí sin restricción (para poder previsualizar su propia
+    // tienda de prueba); ahora se le redirige siempre, sin excepción.
+    if (profile?.role === "admin") {
+      redirect("/admin");
+    }
+
     // El acceso al panel ya no depende de profiles.role === "business" —
     // ese rol solo se pone al aprobar (ver /api/admin/businesses), así que
     // alguien con una tienda todavía pendiente (rol sigue "client") también
-    // debe poder entrar aquí y ver PendingApprovalGate. Los admins entran
-    // siempre, sin ligarse a ningún negocio propio.
-    if (profile?.role !== "admin") {
-      const { data: businesses } = await supabase
-        .from("businesses")
-        .select("id, is_approved")
-        .eq("owner_id", userId)
-        .order("created_at", { ascending: true });
+    // debe poder entrar aquí y ver PendingApprovalGate.
+    const { data: businesses } = await supabase
+      .from("businesses")
+      .select("id, is_approved")
+      .eq("owner_id", userId)
+      .order("created_at", { ascending: true });
 
-      if (!businesses || businesses.length === 0) {
-        redirect("/perfil/crear-tienda");
-      }
-
-      const activeBusinessId = cookieStore.get("current_business_id")?.value;
-      const activeBusiness = businesses.find((b) => b.id === activeBusinessId) ?? businesses[0];
-      pendingApproval = !activeBusiness.is_approved;
-      businessId = activeBusiness.id;
+    if (!businesses || businesses.length === 0) {
+      redirect("/perfil/crear-tienda");
     }
+
+    const activeBusinessId = cookieStore.get("current_business_id")?.value;
+    const activeBusiness = businesses.find((b) => b.id === activeBusinessId) ?? businesses[0];
+    pendingApproval = !activeBusiness.is_approved;
+    businessId = activeBusiness.id;
   }
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-[#030810]">
@@ -111,7 +115,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Mobile bottom nav */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 border-t border-slate-200 dark:border-white/10 flex z-40 bg-white/95 dark:bg-[#040a14]/95 backdrop-blur-md">
           {(pendingApproval
-            ? [{ href: "/dashboard/business/settings", label: "Config.", icon: Settings }]
+            ? [
+                // Mientras está pendiente no hay nada del panel que usar
+                // todavía, pero tampoco debe sentirse atrapado aquí: puede
+                // seguir navegando el sitio público (sin Cupones ni
+                // Carrito, esos son para comprar, no le urgen ahora) y
+                // revisar los datos de su negocio.
+                { href: "/",                             label: "Inicio",  icon: Home },
+                { href: "/?q=",                           label: "Buscar",  icon: Search },
+                { href: "/dashboard/business/settings",   label: "Config.", icon: Settings },
+              ]
             : [
                 { href: "/dashboard/business",              label: "Inicio",    icon: LayoutDashboard },
                 { href: "/dashboard/business/products",     label: "Productos", icon: Package },

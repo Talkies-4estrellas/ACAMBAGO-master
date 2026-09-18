@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Store, User, ChevronDown, Plus } from "lucide-react";
 import { getDemoMode, DEMO_BUYER, DEMO_SELLER } from "@/lib/demo-mode";
@@ -19,7 +20,7 @@ export default function UserInfo({ variant = "sidebar" }: { variant?: "sidebar" 
   const [role, setRole] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState<"buyer" | "seller" | null>(null);
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [activeBusiness, setActiveBusiness] = useState<{ id?: string; name: string } | null>(null);
+  const [activeBusiness, setActiveBusiness] = useState<{ id?: string; name: string; is_approved?: boolean; image_url?: string } | null>(null);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -113,16 +114,23 @@ export default function UserInfo({ variant = "sidebar" }: { variant?: "sidebar" 
             target="_blank"
             rel="noopener noreferrer"
             title="Ver mi tienda como la ven los clientes"
-            className="w-9 h-9 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center flex-shrink-0 hover:bg-brand-200 dark:hover:bg-brand-500/30 transition-colors"
+            className="w-9 h-9 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center flex-shrink-0 hover:bg-brand-200 dark:hover:bg-brand-500/30 transition-colors overflow-hidden relative"
           >
-            <Store className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+            {activeBusiness?.image_url ? (
+              <Image src={activeBusiness.image_url} alt={activeBusiness.name} fill className="object-cover" />
+            ) : (
+              <Store className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+            )}
           </Link>
         ) : (
-          <div className="w-9 h-9 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center flex-shrink-0">
-            {actingAsSeller
-              ? <Store className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-              : <User className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-            }
+          <div className="w-9 h-9 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center flex-shrink-0 overflow-hidden relative">
+            {actingAsSeller && activeBusiness?.image_url ? (
+              <Image src={activeBusiness.image_url} alt={activeBusiness.name} fill className="object-cover" />
+            ) : actingAsSeller ? (
+              <Store className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+            ) : (
+              <User className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+            )}
           </div>
         )}
 
@@ -197,6 +205,18 @@ export default function UserInfo({ variant = "sidebar" }: { variant?: "sidebar" 
             <Plus className="w-3.5 h-3.5 flex-shrink-0" />
             Agregar otra tienda
           </Link>
+          {/* Una sucursal solo tiene sentido para una tienda ya aprobada
+              (comparte productos/cupones con ella) — antes de eso no hay
+              nada que compartir todavía. */}
+          {activeBusiness?.id && activeBusiness?.is_approved && (
+            <Link
+              href="/perfil/crear-sucursal"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm text-brand-600 dark:text-brand-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5 flex-shrink-0" />
+              Agregar nueva sucursal
+            </Link>
+          )}
         </div>
       )}
     </div>

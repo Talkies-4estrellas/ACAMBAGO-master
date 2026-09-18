@@ -9,7 +9,7 @@ import { useAuthUser } from "@/lib/hooks/use-auth-user";
 export default function MobileNav() {
   const pathname = usePathname();
   const { count, openCart, isCartOpen } = useCart();
-  const { userId, role, hasBusiness } = useAuthUser();
+  const { userId, role, hasBusiness, loading } = useAuthUser();
   // hasBusiness cubre tiendas pendientes de aprobación (rol todavía
   // "client"), no solo las ya aprobadas ("business"). Se excluye admin: ya
   // se maneja aparte abajo (perfilHref lo checa primero).
@@ -19,14 +19,19 @@ export default function MobileNav() {
     ? role === "admin" ? "/admin" : actingAsSeller ? "/dashboard/business" : "/mas"
     : "/login";
 
-  const PerfilIcon = !userId ? User : actingAsSeller ? Store : Menu;
+  // Mientras carga (Clerk y luego el rol/tienda desde Supabase), userId puede
+  // llegar antes que role/hasBusiness — mostrar el ícono de "Entrar" en ese
+  // hueco haría parecer que no has iniciado sesión aunque sí lo hiciste. Solo
+  // se asume "no ha iniciado sesión" una vez que loading ya terminó.
+  const PerfilIcon = !loading && !userId ? User : actingAsSeller ? Store : Menu;
+  const perfilLabel = !loading && !userId ? "Entrar" : actingAsSeller ? "Tienda" : "Más";
 
   const tabs = [
     { id: "home",    label: "Inicio",   icon: Home,         href: "/",       isCart: false },
     { id: "search",  label: "Buscar",   icon: Search,       href: "/?q=",    isCart: false },
     { id: "cupones", label: "Cupones",  icon: Ticket,       href: "/coupons",isCart: false },
     { id: "cart",    label: "Carrito",  icon: ShoppingCart, href: null,      isCart: true  },
-    { id: "perfil",  label: userId ? (actingAsSeller ? "Tienda" : "Más") : "Entrar", icon: PerfilIcon, href: perfilHref, isCart: false },
+    { id: "perfil",  label: perfilLabel, icon: PerfilIcon, href: perfilHref, isCart: false },
   ];
 
   return (

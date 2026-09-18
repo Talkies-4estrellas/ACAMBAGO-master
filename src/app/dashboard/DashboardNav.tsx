@@ -18,21 +18,26 @@ const navItems = [
   { href: "/dashboard/business/settings",       label: "Configuración",   icon: Settings },
 ];
 
+// Mientras la tienda está pendiente de aprobación, PendingApprovalGate ya
+// bloquea el contenido de todo lo que no sea /settings — el menú de escritorio
+// tampoco debe listar el resto (Productos, Pedidos, Reseñas, Estadísticas...),
+// para no revelar la estructura completa del panel a alguien que ni siquiera
+// ha sido aprobado todavía. Solo Configuración, nada más (a diferencia de la
+// barra móvil de abajo, que sí agrega Inicio/Buscar — decisión explícita del
+// usuario de mantener el escritorio más restringido).
+const pendingItems = [
+  { href: "/dashboard/business/settings", label: "Configuración", icon: Settings },
+];
+
 export default function DashboardNav({ pendingApproval = false }: { pendingApproval?: boolean }) {
   const pathname = usePathname();
-  // Mientras la tienda está pendiente de aprobación, PendingApprovalGate ya
-  // bloquea el contenido de todo lo que no sea /settings — pero el menú
-  // seguía listando el resto (Productos, Pedidos, Reseñas, Estadísticas...),
-  // revelando la estructura completa del panel a alguien que ni siquiera ha
-  // sido aprobado todavía. Con la tienda pendiente, solo se muestra
-  // Configuración.
-  const items = pendingApproval ? navItems.filter((i) => i.href === "/dashboard/business/settings") : navItems;
+  const items = pendingApproval ? pendingItems : navItems;
 
   return (
     <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
       {items.map(({ href, label, icon: Icon }) => {
         const isActive =
-          href === "/dashboard/business"
+          href === "/dashboard/business" || href === "/"
             ? pathname === href
             : pathname.startsWith(href);
         return (

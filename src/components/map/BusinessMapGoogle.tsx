@@ -14,8 +14,13 @@ import { Business } from "@/types";
 const ACAMBARO_CENTER = { lat: 20.0319, lng: -100.7273 };
 const MAP_ID = "acomdi-map"; // puede ser cualquier string o un Map ID real de Google
 
+// Un pin puede ser el negocio mismo, o una sucursal suya: en ese caso `id` es
+// el id propio de la sucursal (para poder enfocarla sin ambigüedad) y
+// `businessId` es el negocio al que debe llevar el link "Ver negocio →".
+type MapPin = Business & { businessId?: string };
+
 interface Props {
-  businesses: Business[];
+  businesses: MapPin[];
   apiKey: string;
   /** ID de negocio a centrar/resaltar (viene de "Ver en el mapa" de una tarjeta). */
   focusId?: string;
@@ -76,7 +81,7 @@ export default function BusinessMapGoogle({ businesses, apiKey, focusId }: Props
                 <p className="text-xs text-gray-400 mt-0.5 leading-tight">{selected.address}</p>
               )}
               <Link
-                href={`/business/${selected.id}`}
+                href={`/business/${selected.businessId ?? selected.id}`}
                 className="inline-block mt-2.5 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 px-3 py-1.5 rounded-lg transition-colors no-underline"
                 style={{ background: "#068562", color: "white" }}
               >

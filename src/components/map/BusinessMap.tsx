@@ -7,8 +7,13 @@ import "leaflet/dist/leaflet.css";
 
 const ACAMBARO_CENTER: [number, number] = [20.0319, -100.7273];
 
+// Un pin puede ser el negocio mismo, o una sucursal suya: en ese caso `id` es
+// el id propio de la sucursal (para poder enfocarla sin ambigüedad) y
+// `businessId` es el negocio al que debe llevar el link "Ver negocio →".
+type MapPin = Business & { businessId?: string };
+
 interface Props {
-  businesses: Business[];
+  businesses: MapPin[];
   center?: [number, number];
   zoom?: number;
   /** ID de negocio a centrar y resaltar (viene de "Ver en el mapa" de una tarjeta). */
@@ -74,7 +79,7 @@ export default function BusinessMap({ businesses, center = ACAMBARO_CENTER, zoom
               <p style="font-size:11px;color:#64748b;margin:2px 0 0">${b.category}</p>
               <p style="font-size:11px;color:#f59e0b;margin:2px 0 0">⭐ ${Number(b.rating_avg).toFixed(1)} (${b.rating_count} reseñas)</p>
               <p style="font-size:11px;color:#94a3b8;margin:2px 0 0">${b.address}</p>
-              <a href="/business/${b.id}"
+              <a href="/business/${b.businessId ?? b.id}"
                 style="display:inline-block;margin-top:8px;font-size:12px;font-weight:600;color:white;background:#068562;padding:5px 12px;border-radius:8px;text-decoration:none">
                 Ver negocio →
               </a>

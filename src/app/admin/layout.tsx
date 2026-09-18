@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ShieldCheck, LayoutDashboard, Store, Users, Globe } from "lucide-react";
+import { ShieldCheck, LayoutDashboard, Store, Users, User, Globe } from "lucide-react";
 import AdminNav from "./AdminNav";
 
 export const metadata = { title: "Admin — Acom-Di" };
@@ -49,6 +49,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             { href: "/admin?tab=resumen",  label: "Resumen",   icon: LayoutDashboard },
             { href: "/admin?tab=negocios", label: "Negocios",  icon: Store },
             { href: "/admin?tab=usuarios", label: "Usuarios",  icon: Users },
+            { href: "/admin?tab=perfil",   label: "Perfil",    icon: User },
             { href: "/",                   label: "Ver sitio", icon: Globe },
           ].map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href}

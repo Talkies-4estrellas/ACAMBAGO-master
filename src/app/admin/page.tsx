@@ -7,6 +7,7 @@ import AdminBusinessActions from "./AdminBusinessActions";
 import ApprovedBusinessesList from "./ApprovedBusinessesList";
 import AdminNotificationBell from "./AdminNotificationBell";
 import UsersTable, { type Profile } from "./UsersTable";
+import AdminProfileSection from "./AdminProfileSection";
 import CategoryIcon from "@/components/ui/CategoryIcon";
 import {
   CheckCircle, Store, Users, Package, Clock,
@@ -114,6 +115,7 @@ export default async function AdminPage({
     { id: "resumen",   label: "Resumen",   icon: LayoutDashboard },
     { id: "negocios",  label: "Negocios",  icon: Store, badge: pending.length > 0 ? pending.length : undefined },
     { id: "usuarios",  label: "Usuarios",  icon: Users },
+    { id: "perfil",    label: "Mi perfil", icon: User },
   ];
 
   return (
@@ -347,6 +349,12 @@ export default async function AdminPage({
       {/* ── USUARIOS ── */}
       {tab === "usuarios" && (
         <UsersTable users={users} currentUserId={currentUserId} isDemo={isDemo} />
+      )}
+
+      {/* ── MI PERFIL ── */}
+      {tab === "perfil" && !isDemo && <AdminProfileSection />}
+      {tab === "perfil" && isDemo && (
+        <p className="text-sm text-slate-400 dark:text-slate-500">Conecta Supabase para editar tu perfil de admin.</p>
       )}
     </div>
   );

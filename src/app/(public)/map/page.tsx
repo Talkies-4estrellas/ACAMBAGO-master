@@ -5,7 +5,9 @@ import { MapPin } from "lucide-react";
 
 export const revalidate = 60;
 
-async function getBusinesses(): Promise<Business[]> {
+type MapPinData = Business & { businessId?: string };
+
+async function getBusinesses(): Promise<MapPinData[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   if (!url || url.includes("placeholder") || url.includes("your-project")) return [];
   try {
@@ -17,7 +19,32 @@ async function getBusinesses(): Promise<Business[]> {
       .eq("is_approved", true)
       .eq("is_active", true)
       .not("latitude", "is", null);
-    return (data ?? []) as Business[];
+    const businesses = (data ?? []) as Business[];
+
+    // Cada sucursal es otro pin del mismo negocio: comparte productos y
+    // cupones, solo cambia nombre/dirección/coordenadas mostrados en el mapa.
+    // `id` es el id propio de la sucursal (para poder enfocarla sin
+    // ambigüedad con "Ver en el mapa"); `businessId` es a dónde debe llevar
+    // el link "Ver negocio →" dentro del popup.
+    const { data: branchRows } = await supabase
+      .from("business_branches")
+      .select("*, businesses(*)")
+      .not("latitude", "is", null);
+
+    const branches: MapPinData[] = (branchRows ?? [])
+      .filter((r) => r.businesses?.is_approved && r.businesses?.is_active)
+      .map((r) => ({
+        ...(r.businesses as Business),
+        id: r.id,
+        businessId: r.businesses.id,
+        name: `${r.businesses.name} — ${r.name}`,
+        address: r.address,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        whatsapp: r.whatsapp || r.businesses.whatsapp,
+      }));
+
+    return [...businesses, ...branches];
   } catch {
     return [];
   }
@@ -30,7 +57,7 @@ export default async function MapPage({
 }) {
   const { business: focusId } = await searchParams;
   const supabaseBusinesses = await getBusinesses();
-  const businesses: Business[] = [
+  const businesses: MapPinData[] = [
     ...[...DEMO_BUSINESSES, ...DEMO_BUSINESSES_EXTRA].filter((b) => b.latitude && b.longitude),
     ...supabaseBusinesses.filter((b) => !b.id.startsWith("demo")),
   ];
