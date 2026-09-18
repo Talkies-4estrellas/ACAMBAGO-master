@@ -5,7 +5,6 @@ import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import LogoutButton from "@/components/ui/LogoutButton";
 import UserInfo from "@/components/ui/UserInfo";
-import NotificationBell from "@/components/ui/NotificationBell";
 import DashboardNav from "./DashboardNav";
 import DemoBanner from "@/components/ui/DemoBanner";
 import PendingApprovalGate from "./PendingApprovalGate";
@@ -76,7 +75,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 <Image src="/acomdi.png" alt="Acom-Di" width={70} height={28} className="h-7 w-auto object-contain" />
               </div>
             </Link>
-            <NotificationBell href="/dashboard/business/notificaciones" />
           </div>
           <div className="flex items-center gap-2 px-2.5 py-1.5 bg-brand-500/10 dark:bg-brand-500/15 rounded-xl border border-brand-200 dark:border-brand-500/30">
             <Store className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400 flex-shrink-0" />
@@ -107,7 +105,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </span>
           </div>
           <div className="flex items-center gap-1 min-w-0 flex-shrink justify-end">
-            <NotificationBell href="/dashboard/business/notificaciones" />
             <UserInfo variant="topbar" />
           </div>
         </div>
