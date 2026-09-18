@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import { DEMO_PRODUCTS } from "@/lib/demo-data";
 import { formatPrice } from "@/lib/utils";
 import { loadOwnedBusinesses } from "@/lib/current-business";
+import NotificationBellDropdown from "@/components/ui/NotificationBellDropdown";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const IS_DEMO = !SUPABASE_URL || SUPABASE_URL.includes("your-project") || SUPABASE_URL === "https://placeholder.supabase.co";
@@ -199,12 +200,22 @@ export default function ProductsPage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Mis Productos</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">{products.length} productos publicados</p>
         </div>
-        <button
-          onClick={openNew}
-          className="btn-primary flex items-center gap-2 text-sm shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> Agregar producto
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Solo escritorio: en móvil ya está la campana de la barra
+              superior (dashboard/layout.tsx), fija en todas las pantallas
+              del panel. */}
+          {!IS_DEMO && user?.id && (
+            <div className="hidden lg:block">
+              <NotificationBellDropdown userId={user.id} viewAllHref="/dashboard/business/notificaciones" />
+            </div>
+          )}
+          <button
+            onClick={openNew}
+            className="btn-primary flex items-center gap-2 text-sm shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Agregar producto
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
