@@ -12,8 +12,14 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { OrderStatusBadge } from "@/components/ui/OrderStatusBadge";
+import NotificationBellDropdown from "@/components/ui/NotificationBellDropdown";
 import { Order } from "@/types";
 import { loadOwnedBusinesses } from "@/lib/current-business";
+
+// El cartel "Negocio aprobado" solo tiene sentido los primeros dias despues
+// de la aprobacion (celebrar la novedad) — despues de una semana ya no
+// aporta nada y solo ocupa espacio.
+const APPROVED_BADGE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const IS_DEMO = !SUPABASE_URL || SUPABASE_URL.includes("your-project") || SUPABASE_URL === "https://placeholder.supabase.co";
@@ -77,6 +83,7 @@ export default function DashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loaded, setLoaded] = useState(IS_DEMO);
   const [noBusiness, setNoBusiness] = useState(false);
+  const [showApprovedBadge, setShowApprovedBadge] = useState(true);
   const supabase = createClient();
   const router = useRouter();
 
@@ -88,6 +95,9 @@ export default function DashboardPage() {
 
       if (!biz) { setNoBusiness(true); setLoaded(true); return; }
       setBusiness(biz);
+      // Date.now() no puede llamarse durante el render (regla de pureza de
+      // React) — se calcula aquí, dentro del efecto, no en el JSX.
+      setShowApprovedBadge(!biz.approved_at || Date.now() - new Date(biz.approved_at).getTime() < APPROVED_BADGE_WINDOW_MS);
 
       const [
         { count: products },
@@ -222,12 +232,15 @@ export default function DashboardPage() {
           <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-sm">{business?.category} · {business?.address}</p>
         </div>
         <div className="flex items-center gap-2.5">
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20 px-3 py-1.5 rounded-full">
-            ✓ Negocio aprobado
-          </span>
+          {showApprovedBadge && (
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20 px-3 py-1.5 rounded-full">
+              ✓ Negocio aprobado
+            </span>
+          )}
           <Link href={`/business/${business?.id ?? "demo"}`} className="text-xs text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 transition-colors">
             Ver perfil público →
           </Link>
+          {!IS_DEMO && user?.id && <NotificationBellDropdown userId={user.id} viewAllHref="/dashboard/business/notificaciones" />}
         </div>
       </div>
 

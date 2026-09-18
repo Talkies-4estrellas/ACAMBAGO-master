@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     }
 
     if (action === "approve") {
-      const { error } = await supabase.from("businesses").update({ is_approved: true, is_active: true }).eq("id", businessId);
+      const { error } = await supabase.from("businesses").update({ is_approved: true, is_active: true, approved_at: new Date().toISOString() }).eq("id", businessId);
       if (error) return NextResponse.json({ error: "No se pudo aprobar" }, { status: 500 });
 
       // El rol sube a "business" justo aqui, al aprobar — no antes (ver

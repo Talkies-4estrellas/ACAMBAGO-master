@@ -60,6 +60,7 @@ export interface Business {
   rating_count: number;
   is_approved: boolean;
   is_active: boolean;
+  approved_at?: string;
   created_at: string;
   updated_at: string;
 }
