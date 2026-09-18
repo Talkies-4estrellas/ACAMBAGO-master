@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { Bell } from "lucide-react";
+import { Bell, BellRing } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function NotificationBell({ href }: { href: string }) {
@@ -47,7 +47,11 @@ export default function NotificationBell({ href }: { href: string }) {
       aria-label="Notificaciones"
       title="Notificaciones"
     >
-      <Bell className="w-4 h-4 text-slate-500 dark:text-gray-400" />
+      {unread > 0 ? (
+        <BellRing className="w-4 h-4 text-brand-600 dark:text-brand-400 animate-pulse" />
+      ) : (
+        <Bell className="w-4 h-4 text-slate-500 dark:text-gray-400" />
+      )}
       {unread > 0 && (
         <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
           {unread > 9 ? "9+" : unread}
