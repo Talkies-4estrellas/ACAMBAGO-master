@@ -20,6 +20,7 @@
 | 2026-09-14 | [sesion-14-09-2026.md](./sesion-14-09-2026.md) | El link "Productos" nunca llevaba a su catálogo; filtro por categoría, orden, buscador, `/menos-de-500`/`/mas-vendidos` consolidadas ahí, primer commit real del repo, pastillas de categoría con orden alfabético/historial, y categoría propia por producto (puede tener varias) |
 | 2026-09-15 | [sesion-15-09-2026.md](./sesion-15-09-2026.md) | Se corrieron las 3 migraciones pendientes; nueva forma de revisar/escribir la base real vía la API REST de Supabase sin el dashboard; bug de `CREATE OR REPLACE FUNCTION` corregido; placeholder de contraseña en inglés arreglado; repaso completo del panel de cliente (9 pestañas) con el pendiente del `BellRing` resuelto; seguridad: el rol ya no sube a "business" hasta que se aprueba la tienda, y el menú del panel ya no revela su estructura mientras está pendiente |
 | 2026-09-18 | [sesion-18-09-2026.md](./sesion-18-09-2026.md) | El admin ya solo tiene `/admin`; ajustes al menú de tienda pendiente; parpadeo de íconos corregido; función nueva de Sucursales; logo real en el sidebar; cartel de "Negocio aprobado" con vencimiento a 1 semana; campanas de notificación estandarizadas (ícono lleno + número) en las 3 del proyecto, sin duplicados; empezó la revisión del panel apartado por apartado (Resumen, Productos) |
+| 2026-09-21 | [sesion-21-09-2026.md](./sesion-21-09-2026.md) | Sistema completo de categorías dinámicas con jerarquía padre/hijo (portado de otro proyecto, "Orden Express"), con buscador de autocompletado y creación al vuelo, reemplazando la lista fija `BUSINESS_CATEGORIES` en toda la app; bug real de selección con árbol viejo corregido; arrastrar-y-soltar agregado a las fotos del formulario de producto |
 
 ---
 
@@ -29,9 +30,8 @@
 - Decidir si "Menos de $500" necesita de vuelta un tope real de precio, o se deja como orden simple.
 - `/productos` sigue sin paginación real — el límite de 90 es un techo silencioso, igual que antes.
 - Idea diferida: contador de productos por pastilla de categoría, para otra sección todavía sin decidir cuál.
-- Confirmar que el selector de categorías del formulario de producto se ve y guarda bien, con la cuenta real que ya tiene tienda propia.
 - Decidir si forzar contraseña también en cuentas de Google (configuración de Clerk Dashboard) — el usuario decidió dejarlo como está por ahora.
-- Verificar en vivo (con sesión real de admin) que el redirect a `/admin` funcione y que "Mi panel" siga ganándole al switcher de vendedor si ese admin también es dueño de una tienda.
+- Verificar en vivo (con sesión real de admin) que el redirect a `/admin` funcione, que "Mi panel" siga ganándole al switcher de vendedor si ese admin también es dueño de una tienda, y que el panel de admin se vea bien con categorías dinámicas.
 - Considerar si el desplegable de `UserInfo.tsx` (sidebar de escritorio) debería abrirse también con una sola tienda, para que "Agregar otra tienda"/"Agregar nueva sucursal" sean alcanzables desde ahí.
 - Seguir con la lista de "cosas de seguridad" del usuario — faltan los puntos después del rol prematuro y el menú del panel.
 - Seguir la revisión apartado por apartado del panel de vendedor — quedan Pedidos, Cupones, Escáner QR, Mensajes, Preguntas, Notificaciones, Reseñas, Estadísticas y Configuración.
