@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { createClient } from "@/lib/supabase/client";
-import { Product, BUSINESS_CATEGORIES } from "@/types";
+import { Product } from "@/types";
 import { Plus, Pencil, Trash2, Package, Upload, X, AlertCircle, PauseCircle, PlayCircle } from "lucide-react";
 import Image from "next/image";
 import toast from "react-hot-toast";
@@ -11,6 +11,8 @@ import { DEMO_PRODUCTS } from "@/lib/demo-data";
 import { formatPrice } from "@/lib/utils";
 import { loadOwnedBusinesses } from "@/lib/current-business";
 import NotificationBellDropdown from "@/components/ui/NotificationBellDropdown";
+import CategoryPicker, { CategoryPick, picksToNames, namesToPicks } from "@/components/ui/CategoryPicker";
+import { useCategories } from "@/lib/hooks/use-categories";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const IS_DEMO = !SUPABASE_URL || SUPABASE_URL.includes("your-project") || SUPABASE_URL === "https://placeholder.supabase.co";
@@ -44,13 +46,14 @@ export default function ProductsPage() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
-  const [categories, setCategories] = useState<string[]>([]);
+  const [picks, setPicks] = useState<CategoryPick[]>([]);
   const [saving, setSaving] = useState(false);
   const [images, setImages] = useState<ImageSlot[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<"todos" | "agotados">("todos");
 
   const supabase = createClient();
+  const { tree: categoryTree, addCreated } = useCategories();
 
   useEffect(() => {
     const load = async () => {
@@ -78,7 +81,7 @@ export default function ProductsPage() {
   const openNew = () => {
     if (IS_DEMO) { toast("Conecta Supabase para agregar productos reales", { icon: "ℹ️" }); return; }
     setEditing(null); setName(""); setDescription(""); setPrice(""); setStock("");
-    setCategories(businessCategory ? [businessCategory] : []);
+    setPicks(businessCategory ? namesToPicks([businessCategory], categoryTree) : []);
     setImages([]); setShowForm(true);
   };
 
@@ -87,14 +90,11 @@ export default function ProductsPage() {
     setEditing(p); setName(p.name); setDescription(p.description ?? "");
     setPrice(String(p.price));
     setStock(p.stock_quantity != null ? String(p.stock_quantity) : "");
-    setCategories(p.categories?.length ? p.categories : businessCategory ? [businessCategory] : []);
+    const names = p.categories?.length ? p.categories : businessCategory ? [businessCategory] : [];
+    setPicks(namesToPicks(names, categoryTree));
     const existing = p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [];
     setImages(existing.map((url) => ({ url, preview: url })));
     setShowForm(true);
-  };
-
-  const toggleCategory = (c: string) => {
-    setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
   };
 
   const addFiles = (fileList: FileList | null) => {
@@ -119,11 +119,12 @@ export default function ProductsPage() {
       toast.error("No se encontró tu negocio. Recarga la página.");
       return;
     }
-    if (categories.length === 0) {
+    if (picks.length === 0) {
       toast.error("Elige al menos una categoría para el producto");
       return;
     }
     setSaving(true);
+    const categories = picksToNames(picks, categoryTree);
 
     const finalUrls: string[] = [];
     for (const img of images) {
@@ -323,23 +324,14 @@ export default function ProductsPage() {
               </div>
               <div>
                 <label className="label">Categorías del producto *</label>
-                <div className="border border-slate-200 dark:border-white/10 rounded-xl max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-white/10">
-                  {BUSINESS_CATEGORIES.map((c) => (
-                    <label
-                      key={c}
-                      className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={categories.includes(c)}
-                        onChange={() => toggleCategory(c)}
-                        className="w-4 h-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500 dark:border-white/20 dark:bg-white/5"
-                      />
-                      <span className="text-slate-700 dark:text-gray-200">{c}</span>
-                    </label>
-                  ))}
-                </div>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">Elige una o varias; así aparece en cada categoría aunque no sea el giro principal de tu tienda.</p>
+                <CategoryPicker
+                  mode="multi"
+                  tree={categoryTree}
+                  value={picks}
+                  onChange={setPicks}
+                  onCategoryCreated={addCreated}
+                />
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">Elige una o varias; busca una existente o crea una nueva con &quot;+ Nueva&quot;. Así aparece en cada categoría aunque no sea el giro principal de tu tienda.</p>
               </div>
 
               <div className="flex gap-3 pt-2">
