@@ -29,13 +29,18 @@ function ComboBox({
   noResultsHint: string;
 }) {
   const [open, setOpen] = useState(false);
+  // Al enfocar con una categoría ya elegida, el query trae su nombre — sin
+  // esto, el filtro de abajo solo encontraría a esa misma opción, ocultando
+  // el resto. Se muestran todas hasta que la persona escriba algo distinto.
+  const [showAll, setShowAll] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
+    if (showAll) return options;
     const q = query.trim().toLowerCase();
     if (!q) return options;
     return options.filter((o) => o.name.toLowerCase().includes(q));
-  }, [options, query]);
+  }, [options, query, showAll]);
 
   useEffect(() => {
     if (!open) return;
@@ -53,8 +58,8 @@ function ComboBox({
     <div ref={rootRef} className="relative flex-1 min-w-0">
       <input
         value={query}
-        onChange={(e) => { onQueryChange(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
+        onChange={(e) => { onQueryChange(e.target.value); setShowAll(false); setOpen(true); }}
+        onFocus={(e) => { setOpen(true); setShowAll(true); e.target.select(); }}
         onKeyDown={(e) => {
           if (e.key === "Escape") { setOpen(false); onClose(); }
           if (e.key === "Enter" && filtered.length === 1) { e.preventDefault(); onSelect(filtered[0]); setOpen(false); }
