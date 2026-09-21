@@ -51,6 +51,7 @@ export default function ProductsPage() {
   const [images, setImages] = useState<ImageSlot[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<"todos" | "agotados">("todos");
+  const [draggingOverImages, setDraggingOverImages] = useState(false);
 
   const supabase = createClient();
   const { tree: categoryTree, addCreated } = useCategories();
@@ -111,6 +112,12 @@ export default function ProductsPage() {
 
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDropImages = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDraggingOverImages(false);
+    addFiles(e.dataTransfer.files);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -287,10 +294,18 @@ export default function ProductsPage() {
                   {images.length < MAX_IMAGES && (
                     <div
                       onClick={() => document.getElementById("product-image-input")?.click()}
-                      className="h-24 flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-200 dark:border-white/20 hover:border-brand-400 dark:hover:border-brand-500 cursor-pointer text-slate-400 dark:text-slate-500 transition-colors"
+                      onDragOver={(e) => { e.preventDefault(); setDraggingOverImages(true); }}
+                      onDragLeave={() => setDraggingOverImages(false)}
+                      onDrop={handleDropImages}
+                      className={`h-24 flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
+                        draggingOverImages
+                          ? "border-brand-400 bg-brand-50 dark:bg-brand-500/10 text-brand-500"
+                          : "border-slate-200 dark:border-white/20 hover:border-brand-400 dark:hover:border-brand-500 text-slate-400 dark:text-slate-500"
+                      }`}
                     >
                       <Upload className="w-5 h-5" />
                       <p className="text-[10px] font-medium">Agregar foto</p>
+                      <p className="text-[9px]">o arrastra aquí</p>
                     </div>
                   )}
                 </div>
