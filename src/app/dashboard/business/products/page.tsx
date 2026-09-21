@@ -323,20 +323,20 @@ export default function ProductsPage() {
               </div>
               <div>
                 <label className="label">Categorías del producto *</label>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="border border-slate-200 dark:border-white/10 rounded-xl max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-white/10">
                   {BUSINESS_CATEGORIES.map((c) => (
-                    <button
+                    <label
                       key={c}
-                      type="button"
-                      onClick={() => toggleCategory(c)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        categories.includes(c)
-                          ? "bg-brand-500 text-white border-brand-500"
-                          : "bg-white text-slate-600 border-slate-300 hover:border-brand-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/20 dark:hover:border-brand-400"
-                      }`}
+                      className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                     >
-                      {c}
-                    </button>
+                      <input
+                        type="checkbox"
+                        checked={categories.includes(c)}
+                        onChange={() => toggleCategory(c)}
+                        className="w-4 h-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500 dark:border-white/20 dark:bg-white/5"
+                      />
+                      <span className="text-slate-700 dark:text-gray-200">{c}</span>
+                    </label>
                   ))}
                 </div>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">Elige una o varias; así aparece en cada categoría aunque no sea el giro principal de tu tienda.</p>
