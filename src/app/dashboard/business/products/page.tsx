@@ -24,6 +24,58 @@ interface ImageSlot {
   preview: string;
 }
 
+/** Convierte cualquier foto a WebP antes de subirla (mismo criterio que el
+ * logo/banner en ImageCropUpload.tsx) — incluye HEIC (fotos de iPhone), que
+ * primero se pasan a JPEG porque el canvas no puede leer ese formato directo.
+ * Si algo falla, se sube el archivo original tal cual, nunca se bloquea la venta. */
+async function convertToWebp(file: File): Promise<Blob> {
+  const isHeic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
+  let sourceBlob: Blob = file;
+  if (isHeic) {
+    const convert = (await import("heic-convert/browser")).default;
+    const buffer = await file.arrayBuffer();
+    const output = await convert({ buffer: new Uint8Array(buffer), format: "JPEG", quality: 0.9 });
+    sourceBlob = new Blob([output as BlobPart], { type: "image/jpeg" });
+  }
+
+  const url = URL.createObjectURL(sourceBlob);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new window.Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = url;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("No se pudo preparar la imagen");
+    ctx.drawImage(img, 0, 0);
+    return await new Promise<Blob>((resolve, reject) => {
+      // Si el navegador no sabe codificar webp, cae solo a png (comportamiento
+      // nativo de toBlob) — el nombre/extensión final se decide leyendo
+      // blob.type en el momento de subir, nunca asumiendo que sí quedó en webp.
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No se pudo convertir la imagen"))), "image/webp", 0.85);
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** Lo que le falta al precio escrito para completar 2 decimales — el
+ * "fantasma" que se muestra en gris después de lo que el vendedor ya
+ * escribió, y que desaparece en cuanto él mismo pone sus propios decimales. */
+function priceGhostSuffix(raw: string): string {
+  if (!raw) return "";
+  const dotIndex = raw.indexOf(".");
+  if (dotIndex === -1) return ".00";
+  const decimals = raw.slice(dotIndex + 1);
+  if (decimals.length === 0) return "00";
+  if (decimals.length === 1) return "0";
+  return "";
+}
+
 function StockBadge({ stock }: { stock?: number }) {
   if (stock == null) return null;
   if (stock === 0) {
@@ -52,6 +104,7 @@ export default function ProductsPage() {
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<"todos" | "agotados">("todos");
   const [draggingOverImages, setDraggingOverImages] = useState(false);
+  const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
 
   const supabase = createClient();
   const { tree: categoryTree, addCreated } = useCategories();
@@ -114,9 +167,29 @@ export default function ProductsPage() {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Reordena arrastrando una foto ya subida sobre otra — la que queda
+  // primera es la portada (ya lo decide el resto del código con i === 0).
+  const moveImage = (from: number, to: number) => {
+    if (from === to) return;
+    setImages((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+
   const handleDropImages = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDraggingOverImages(false);
+    // Si lo que se soltó es una foto ya subida (se estaba reordenando), no
+    // se agrega como archivo nuevo — antes esto duplicaba la foto porque el
+    // navegador también manda la imagen arrastrada en dataTransfer.files.
+    if (draggingImageIndex !== null) {
+      moveImage(draggingImageIndex, images.length - 1);
+      setDraggingImageIndex(null);
+      return;
+    }
     addFiles(e.dataTransfer.files);
   };
 
@@ -140,9 +213,17 @@ export default function ProductsPage() {
         continue;
       }
       if (img.file) {
-        const ext = img.file.name.split(".").pop();
+        let uploadBlob: Blob = img.file;
+        let ext = img.file.name.split(".").pop() ?? "jpg";
+        try {
+          uploadBlob = await convertToWebp(img.file);
+          if (uploadBlob.type === "image/webp") ext = "webp";
+        } catch {
+          // Si la conversión falla, se sube el archivo original tal cual —
+          // nunca debe tumbar la publicación del producto por esto.
+        }
         const path = `${businessId}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
-        const { error: uploadErr } = await supabase.storage.from("product-images").upload(path, img.file, { upsert: true });
+        const { error: uploadErr } = await supabase.storage.from("product-images").upload(path, uploadBlob, { upsert: true, contentType: uploadBlob.type });
         if (uploadErr) {
           toast.error(`Error al subir una imagen: ${uploadErr.message}`);
           setSaving(false);
@@ -277,8 +358,23 @@ export default function ProductsPage() {
                 <label className="label">Fotos del producto ({images.length}/{MAX_IMAGES})</label>
                 <div className="grid grid-cols-3 gap-2">
                   {images.map((img, i) => (
-                    <div key={i} className="relative h-24 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10">
-                      <Image src={img.preview} alt={`Foto ${i + 1}`} fill className="object-cover" />
+                    <div
+                      key={i}
+                      draggable
+                      onDragStart={() => setDraggingImageIndex(i)}
+                      onDragEnd={() => setDraggingImageIndex(null)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (draggingImageIndex !== null) moveImage(draggingImageIndex, i);
+                        setDraggingImageIndex(null);
+                      }}
+                      className={`relative h-24 rounded-xl overflow-hidden border cursor-move transition-opacity ${
+                        draggingImageIndex === i ? "opacity-40" : ""
+                      } border-slate-200 dark:border-white/10`}
+                      title="Arrastra para cambiar el orden"
+                    >
+                      <Image src={img.preview} alt={`Foto ${i + 1}`} fill draggable={false} className="object-cover pointer-events-none" />
                       <button
                         type="button"
                         onClick={() => removeImage(i)}
@@ -330,11 +426,28 @@ export default function ProductsPage() {
               </div>
               <div>
                 <label className="label">Precio (MXN) *</label>
-                <input required type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="input" placeholder="0.00" />
+                <div className="relative w-full bg-white border border-slate-300 rounded-xl focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent transition-all duration-200 dark:bg-white/10 dark:border-white/20">
+                  {/* Capa fantasma: mismo texto ya escrito (invisible) + lo
+                      que falta para completar 2 decimales (en gris) —
+                      desaparece solo en cuanto el vendedor ya puso los suyos. */}
+                  <div className="absolute inset-0 px-4 py-2.5 flex items-center pointer-events-none overflow-hidden text-sm" aria-hidden>
+                    <span className="invisible whitespace-pre">{price}</span>
+                    <span className="text-slate-400 dark:text-slate-500 whitespace-pre">{priceGhostSuffix(price)}</span>
+                  </div>
+                  <input
+                    required
+                    type="text"
+                    inputMode="decimal"
+                    value={price}
+                    onChange={(e) => { if (/^\d*\.?\d*$/.test(e.target.value)) setPrice(e.target.value); }}
+                    placeholder="0.00"
+                    className="relative w-full px-4 py-2.5 bg-transparent outline-none text-sm text-slate-900 placeholder-slate-400 dark:text-white dark:placeholder-gray-400"
+                  />
+                </div>
               </div>
               <div>
                 <label className="label">Cantidad en inventario</label>
-                <input type="number" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} className="input" placeholder="Sin control de inventario" />
+                <input type="number" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} className="input no-spinner" placeholder="Sin control de inventario" />
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Déjalo vacío si no quieres llevar el conteo; se descuenta solo con cada venta.</p>
               </div>
               <div>

@@ -99,4 +99,15 @@ div.cl-cardBox {
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
+
+  /* Quita las flechitas de subir/bajar de <input type="number"> — no sirven
+     cuando se espera que la cantidad se escriba directo, no de uno en uno. */
+  .no-spinner::-webkit-outer-spin-button,
+  .no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .no-spinner {
+    -moz-appearance: textfield;
+  }
 }
