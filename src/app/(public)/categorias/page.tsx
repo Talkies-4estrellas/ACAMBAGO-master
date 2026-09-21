@@ -1,10 +1,23 @@
 import Link from "next/link";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import CategoryIcon from "@/components/ui/CategoryIcon";
-import { BUSINESS_CATEGORIES } from "@/types";
+import { getCategoryTree } from "@/lib/categories";
 import { DEMO_ALL_PRODUCTS, DEMO_ALL_BUSINESSES_LIST } from "@/lib/demo-data";
 
 export const revalidate = 60;
+
+// Nombres de categoría raíz (sin subcategorías) — reemplaza a la lista fija
+// BUSINESS_CATEGORIES de antes, ahora viene de la tabla dinámica.
+async function getRootCategoryNames(): Promise<string[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  if (!url || url.includes("your-project") || url === "https://placeholder.supabase.co") return [];
+  try {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const tree = await getCategoryTree(supabase);
+    return tree.map((c) => c.name);
+  } catch { return []; }
+}
 
 // Solo el nombre de la categoría, no sus productos: no lleva pastillas ni
 // tarjetas, es la lista completa (alfabética) que sirve de escape para las
@@ -36,9 +49,10 @@ const DEMO_CATEGORIES_WITH_PRODUCTS = new Set(
 );
 
 export default async function CategoriasPage() {
-  const real = await getCategoriesWithProducts();
+  const [rootNames, real] = await Promise.all([getRootCategoryNames(), getCategoriesWithProducts()]);
   const categoriesWithProducts = real.size > 0 ? real : DEMO_CATEGORIES_WITH_PRODUCTS;
-  const categories = BUSINESS_CATEGORIES.filter((c) => categoriesWithProducts.has(c)).sort((a, b) => a.localeCompare(b));
+  const allNames = rootNames.length > 0 ? rootNames : Array.from(DEMO_CATEGORIES_WITH_PRODUCTS);
+  const categories = allNames.filter((c) => categoriesWithProducts.has(c)).sort((a, b) => a.localeCompare(b));
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">

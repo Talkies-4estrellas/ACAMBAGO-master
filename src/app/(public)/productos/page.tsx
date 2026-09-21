@@ -3,9 +3,29 @@ import { Package, ArrowLeft, Search } from "lucide-react";
 import ProductsReel from "@/components/ui/ProductsReel";
 import DragScroll from "@/components/ui/DragScroll";
 import CategoryChips from "./CategoryChips";
-import { BUSINESS_CATEGORIES } from "@/types";
+import { getCategoryTree } from "@/lib/categories";
 
 export const revalidate = 60;
+
+// Igual a las 17 categorías fijas de antes (BUSINESS_CATEGORIES) — ahora
+// solo se usa como respaldo en modo demo, cuando no hay tabla de
+// categorías real que consultar.
+const DEMO_CATEGORY_NAMES = [
+  "Tienda de ropa", "Zapatería", "Farmacia", "Ferretería", "Papelería",
+  "Electrónica", "Joyería", "Accesorios", "Mueblería", "Abarrotes",
+  "Cosméticos", "Mascotas", "Artesanías", "Deportes", "Juguetería", "Librería", "Otro",
+];
+
+async function getRootCategoryNames(): Promise<string[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  if (!url || url.includes("your-project") || url === "https://placeholder.supabase.co") return DEMO_CATEGORY_NAMES;
+  try {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const tree = await getCategoryTree(supabase);
+    return tree.length > 0 ? tree.map((c) => c.name) : DEMO_CATEGORY_NAMES;
+  } catch { return DEMO_CATEGORY_NAMES; }
+}
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&q=80";
 
@@ -132,11 +152,12 @@ export default async function AllProductsPage({
   const category = params.category;
   const q = params.q?.trim() || undefined;
   const sort: Sort = SORT_OPTIONS.some((o) => o.value === params.sort) ? (params.sort as Sort) : "recientes";
-  const [items, categoriesWithProducts] = await Promise.all([
+  const [items, categoriesWithProducts, rootNames] = await Promise.all([
     getAllProducts(category, sort, q),
     getCategoriesWithProducts(),
+    getRootCategoryNames(),
   ]);
-  const visibleCategories = BUSINESS_CATEGORIES.filter((c) => categoriesWithProducts.has(c));
+  const visibleCategories = rootNames.filter((c) => categoriesWithProducts.has(c));
 
   return (
     <div className="max-w-screen-2xl mx-auto px-4 py-8">

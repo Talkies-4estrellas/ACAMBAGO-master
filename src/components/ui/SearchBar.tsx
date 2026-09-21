@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Store, Tag, Package } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { BUSINESS_CATEGORIES } from "@/types";
+import { useCategories } from "@/lib/hooks/use-categories";
 import { DEMO_BUSINESSES, DEMO_BUSINESSES_EXTRA, DEMO_ALL_PRODUCTS } from "@/lib/demo-data";
 
 const ALL_DEMO_BUSINESSES = [...DEMO_BUSINESSES, ...DEMO_BUSINESSES_EXTRA];
@@ -20,6 +20,7 @@ interface Suggestion {
 
 export default function SearchBar({ defaultValue }: { defaultValue?: string }) {
   const router = useRouter();
+  const { flat: categoriesFlat } = useCategories();
   const [value, setValue] = useState(defaultValue ?? "");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -43,7 +44,8 @@ export default function SearchBar({ defaultValue }: { defaultValue?: string }) {
         return;
       }
 
-      const categoryMatches: Suggestion[] = BUSINESS_CATEGORIES
+      const categoryMatches: Suggestion[] = categoriesFlat
+        .map((c) => c.name)
         .filter((c) => c.toLowerCase().includes(term))
         .slice(0, 3)
         .map((c) => ({ type: "category", key: `cat-${c}`, label: c, sublabel: "Categoría", href: `/?category=${encodeURIComponent(c)}` }));
@@ -98,7 +100,7 @@ export default function SearchBar({ defaultValue }: { defaultValue?: string }) {
     }, 250);
 
     return () => { cancelled = true; clearTimeout(timeout); };
-  }, [value]);
+  }, [value, categoriesFlat]);
 
   const goTo = (href: string) => {
     setOpen(false);

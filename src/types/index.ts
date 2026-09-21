@@ -282,26 +282,6 @@ export interface QRPayload {
   user_id?: string;
 }
 
-export const BUSINESS_CATEGORIES = [
-  "Tienda de ropa",
-  "Zapatería",
-  "Farmacia",
-  "Ferretería",
-  "Papelería",
-  "Electrónica",
-  "Joyería",
-  "Accesorios",
-  "Mueblería",
-  "Abarrotes",
-  "Cosméticos",
-  "Mascotas",
-  "Artesanías",
-  "Deportes",
-  "Juguetería",
-  "Librería",
-  "Otro",
-] as const;
-
 // Íconos planos (lucide-react) por categoría de negocio. Antes eran emoji
 // nativos del sistema operativo, que se ven con sombreado 3D/glossy según
 // el dispositivo (notorio en Android/Samsung); esto los deja consistentes

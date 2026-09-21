@@ -4,7 +4,8 @@ import HeroCarousel from "@/components/ui/HeroCarousel";
 import QuickAccessRow from "@/components/ui/QuickAccessRow";
 import DragScroll from "@/components/ui/DragScroll";
 import CategoriesReel from "@/components/ui/CategoriesReel";
-import { Business, BUSINESS_CATEGORIES } from "@/types";
+import { Business } from "@/types";
+import { getCategoryTree } from "@/lib/categories";
 import {
   DEMO_BUSINESSES, DEMO_BUSINESSES_EXTRA, DEMO_ALL_PRODUCTS,
   DEMO_PRODUCTS, DEMO_PRODUCTS_ROPA, DEMO_PRODUCTS_ELECTRONICA,
@@ -18,6 +19,26 @@ import { MapPin, Ticket, Star, ArrowRight, Truck, Store, Tag } from "lucide-reac
 import { formatPrice } from "@/lib/utils";
 
 export const revalidate = 60;
+
+// Igual a las 17 categorías fijas de antes (BUSINESS_CATEGORIES) — ahora
+// solo se usa como respaldo en modo demo, cuando no hay tabla de
+// categorías real que consultar.
+const DEMO_CATEGORY_NAMES = [
+  "Tienda de ropa", "Zapatería", "Farmacia", "Ferretería", "Papelería",
+  "Electrónica", "Joyería", "Accesorios", "Mueblería", "Abarrotes",
+  "Cosméticos", "Mascotas", "Artesanías", "Deportes", "Juguetería", "Librería", "Otro",
+];
+
+async function getRootCategoryNames(): Promise<string[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  if (!url || url.includes("your-project") || url === "https://placeholder.supabase.co") return DEMO_CATEGORY_NAMES;
+  try {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const tree = await getCategoryTree(supabase);
+    return tree.length > 0 ? tree.map((c) => c.name) : DEMO_CATEGORY_NAMES;
+  } catch { return DEMO_CATEGORY_NAMES; }
+}
 
 async function getBusinesses(category?: string, search?: string, homeDelivery?: boolean): Promise<Business[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -187,6 +208,7 @@ export default async function HomePage({
   const wantsHomeDelivery = params.delivery === "domicilio";
   const supabaseBusinesses = await getBusinesses(params.category, params.q, wantsHomeDelivery);
   const realFeatured = await getFeaturedProducts();
+  const categoryNames = await getRootCategoryNames();
   const featured = realFeatured.length > 0 ? realFeatured : DEMO_FEATURED;
   const query = params.q?.toLowerCase() ?? "";
   const cat = params.category ?? "";
@@ -243,7 +265,7 @@ export default async function HomePage({
             <Link href="/" className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-all ${!cat ? "bg-brand-500 text-white border-brand-500" : "bg-white text-slate-600 border-slate-300 hover:border-brand-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/20 dark:hover:border-brand-400"}`}>
               Todos
             </Link>
-            {BUSINESS_CATEGORIES.map((c) => (
+            {categoryNames.map((c) => (
               <Link key={c} href={`/?category=${encodeURIComponent(c)}`}
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border transition-all ${cat === c ? "bg-brand-500 text-white border-brand-500" : "bg-white text-slate-600 border-slate-300 hover:border-brand-400 dark:bg-white/5 dark:text-gray-300 dark:border-white/20 dark:hover:border-brand-400"}`}>
                 {c}
@@ -323,7 +345,7 @@ export default async function HomePage({
               <CategoriesReel items={FEATURED_CATEGORIES} />
 
               <DragScroll className="flex gap-2 overflow-x-auto mt-6 pb-1">
-                {BUSINESS_CATEGORIES.filter((c) => !FEATURED_CATEGORIES.find((fc) => fc.name === c)).map((c) => (
+                {categoryNames.filter((c) => !FEATURED_CATEGORIES.find((fc) => fc.name === c)).map((c) => (
                   <Link key={c} href={`/?category=${encodeURIComponent(c)}`}
                     className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium border border-slate-200 bg-white text-slate-600 hover:border-brand-400/50 hover:text-brand-600 dark:border-white/15 dark:bg-white/5 dark:text-gray-300 dark:hover:border-brand-400/50 dark:hover:text-brand-300 transition-all">
                     {c}
