@@ -6,9 +6,9 @@ import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Save, LocateFixed, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { BUSINESS_CATEGORIES } from "@/types";
 import { setCurrentBusinessId } from "@/lib/current-business";
-import CategorySelect from "@/components/ui/CategorySelect";
+import CategoryPicker, { CategoryPick, picksToNames, namesToPicks } from "@/components/ui/CategoryPicker";
+import { useCategories } from "@/lib/hooks/use-categories";
 import ImageCropUpload from "@/components/ui/ImageCropUpload";
 import toast from "react-hot-toast";
 
@@ -19,9 +19,15 @@ export default function CrearTiendaPage() {
   const { user } = useUser();
   const router = useRouter();
 
+  const { tree: categoryTree, addCreated } = useCategories();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("Otro");
+  // Se guarda el pick (ids), no el nombre ya resuelto — resolverlo en el
+  // mismo onChange usaría el árbol de ANTES de crear la categoría (todavía
+  // no se actualiza en ese mismo tick), dejando la selección sin aplicar.
+  // Se resuelve a nombre hasta el envío, cuando el árbol ya está al día.
+  const [pick, setPick] = useState<CategoryPick | null>(null);
+  const effectivePick = pick ?? namesToPicks(["Otro"], categoryTree)[0] ?? null;
   const [address, setAddress] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [latitude, setLatitude] = useState<number | null>(20.0319);
@@ -55,6 +61,11 @@ export default function CrearTiendaPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    const category = effectivePick ? picksToNames([effectivePick], categoryTree)[0] : undefined;
+    if (!category) {
+      toast.error("Elige una categoría para tu negocio");
+      return;
+    }
     setSaving(true);
 
     const supabase = createClient();
@@ -130,7 +141,14 @@ export default function CrearTiendaPage() {
 
           <div>
             <label className="label">Categoría *</label>
-            <CategorySelect value={category} onChange={setCategory} options={BUSINESS_CATEGORIES} />
+            <CategoryPicker
+              mode="single"
+              tree={categoryTree}
+              value={effectivePick}
+              onChange={setPick}
+              allowSubcategory={false}
+              onCategoryCreated={addCreated}
+            />
           </div>
 
           <div>

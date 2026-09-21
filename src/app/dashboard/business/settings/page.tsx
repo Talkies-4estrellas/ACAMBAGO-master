@@ -5,10 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Business, BusinessBranch, BUSINESS_CATEGORIES } from "@/types";
+import { Business, BusinessBranch } from "@/types";
 import { Settings, MapPin, Save, LocateFixed, CreditCard, CheckCircle2, Plus, Store, Truck, Trash2 } from "lucide-react";
 import { loadOwnedBusinesses } from "@/lib/current-business";
-import CategorySelect from "@/components/ui/CategorySelect";
+import CategoryPicker, { CategoryPick, picksToNames, namesToPicks } from "@/components/ui/CategoryPicker";
+import { useCategories } from "@/lib/hooks/use-categories";
 import ImageCropUpload from "@/components/ui/ImageCropUpload";
 import toast from "react-hot-toast";
 import { DEMO_BUSINESS } from "@/lib/demo-data";
@@ -30,6 +31,14 @@ function SettingsContent() {
   const [branches, setBranches] = useState<BusinessBranch[]>([]);
   const [deletingBranchId, setDeletingBranchId] = useState<string | null>(null);
   const supabase = createClient();
+  const { tree: categoryTree, addCreated } = useCategories();
+  // Se guarda el pick (ids) elegido a mano por separado del negocio — si se
+  // resolviera a nombre directo en el onChange, usaría el árbol de ANTES de
+  // crear la categoría (todavía no se actualiza en ese mismo tick) y la
+  // selección de una categoría recién creada no se aplicaría. Se resuelve a
+  // nombre hasta guardar, cuando el árbol ya está al día.
+  const [categoryPickOverride, setCategoryPickOverride] = useState<CategoryPick | null>(null);
+  const categoryPick = categoryPickOverride ?? (business.category ? namesToPicks([business.category], categoryTree)[0] ?? null : null);
 
   const handleUseLocation = () => {
     if (!navigator.geolocation) {
@@ -134,6 +143,12 @@ function SettingsContent() {
       return;
     }
 
+    const category = categoryPick ? picksToNames([categoryPick], categoryTree)[0] : business.category;
+    if (!category) {
+      toast.error("Elige una categoría para tu negocio");
+      return;
+    }
+
     setSaving(true);
 
     const uploadTo = async (blob: Blob, prefix: string) => {
@@ -151,7 +166,7 @@ function SettingsContent() {
     const payload = {
       name: business.name!,
       description: business.description,
-      category: business.category!,
+      category,
       address: business.address!,
       latitude: business.latitude,
       longitude: business.longitude,
@@ -238,10 +253,13 @@ function SettingsContent() {
 
           <div>
             <label className="label">Categoría *</label>
-            <CategorySelect
-              value={business.category ?? BUSINESS_CATEGORIES[0]}
-              onChange={(c) => update("category", c)}
-              options={BUSINESS_CATEGORIES}
+            <CategoryPicker
+              mode="single"
+              tree={categoryTree}
+              value={categoryPick}
+              onChange={setCategoryPickOverride}
+              allowSubcategory={false}
+              onCategoryCreated={addCreated}
             />
           </div>
 

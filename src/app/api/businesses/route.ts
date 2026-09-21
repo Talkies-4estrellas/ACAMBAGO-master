@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { findOrCreateCategory } from "@/lib/categories";
 
 export async function POST(request: Request) {
   try {
@@ -17,6 +18,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nombre, categoría y dirección son requeridos" }, { status: 400 });
     }
 
+    // Normaliza contra la tabla real de categorías (raíz) en vez de guardar
+    // lo que mande el cliente tal cual — mismo criterio que usa el selector
+    // al crear una categoría nueva al vuelo, así nunca queda un nombre
+    // distinto por mayúsculas/espacios entre dos negocios.
+    const resolvedCategory = await findOrCreateCategory(supabase, category, null);
+    if (!resolvedCategory) {
+      return NextResponse.json({ error: "No se pudo resolver la categoría" }, { status: 500 });
+    }
+
     const { banner_url } = body;
 
     const { data, error } = await supabase
@@ -25,7 +35,7 @@ export async function POST(request: Request) {
         owner_id: userId,
         name,
         description,
-        category,
+        category: resolvedCategory.name,
         address,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
@@ -57,7 +67,7 @@ export async function POST(request: Request) {
           user_id: a.id,
           type: "new_business_pending",
           title: `Nueva tienda pendiente: ${name}`,
-          body: `${category} · ${address}`,
+          body: `${resolvedCategory.name} · ${address}`,
           link: "/admin?tab=negocios",
         }))
       );
