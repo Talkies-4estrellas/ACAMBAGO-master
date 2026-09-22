@@ -289,7 +289,7 @@ export default async function ProductPage({
               <h2 className="font-semibold text-slate-900 dark:text-white mb-3">
                 Descripción
               </h2>
-              <p className="text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
+              <p className="text-sm text-slate-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                 {product.description}
               </p>
             </div>

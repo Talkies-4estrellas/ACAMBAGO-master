@@ -16,7 +16,7 @@ import { useCategories } from "@/lib/hooks/use-categories";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const IS_DEMO = !SUPABASE_URL || SUPABASE_URL.includes("your-project") || SUPABASE_URL === "https://placeholder.supabase.co";
-const MAX_IMAGES = 6;
+const MAX_IMAGES = 10;
 // 5 columnas x 10 renglones por página, para cuando haya muchos productos.
 const PRODUCTS_PER_PAGE = 50;
 
