@@ -32,6 +32,7 @@ async function getCategoriesWithProducts(): Promise<Set<string>> {
       .from("products")
       .select("categories, businesses!inner(category, is_approved, is_active)")
       .eq("is_available", true)
+      .eq("is_draft", false)
       .eq("businesses.is_approved", true)
       .eq("businesses.is_active", true);
 

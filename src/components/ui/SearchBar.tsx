@@ -85,6 +85,7 @@ export default function SearchBar({ defaultValue }: { defaultValue?: string }) {
           .from("products")
           .select("id, name, businesses!inner(name, is_approved, is_active)")
           .eq("is_available", true)
+          .eq("is_draft", false)
           .eq("businesses.is_approved", true)
           .eq("businesses.is_active", true)
           .ilike("name", `%${safeTerm}%`)

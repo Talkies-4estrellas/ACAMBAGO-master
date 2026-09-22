@@ -46,12 +46,12 @@ export default async function ProductPage({
       if (url && !url.includes("your-project") && url !== "https://placeholder.supabase.co") {
         const { createClient } = await import("@/lib/supabase/server");
         const supabase = await createClient();
-        const { data } = await supabase.from("products").select("*").eq("id", id).single();
+        const { data } = await supabase.from("products").select("*").eq("id", id).eq("is_draft", false).single();
         if (data) {
           product = data;
           const [{ data: bizData }, { data: relatedData }, { data: questionsData }] = await Promise.all([
             supabase.from("businesses").select("*").eq("id", data.business_id).single(),
-            supabase.from("products").select("*").eq("business_id", data.business_id).eq("is_available", true).neq("id", id).limit(6),
+            supabase.from("products").select("*").eq("business_id", data.business_id).eq("is_available", true).eq("is_draft", false).neq("id", id).limit(6),
             supabase.from("product_questions").select("*").eq("product_id", id).order("created_at", { ascending: false }),
           ]);
           business = bizData ?? null;

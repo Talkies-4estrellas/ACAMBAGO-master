@@ -91,6 +91,7 @@ async function getCategoriesWithProducts(): Promise<Set<string>> {
       .from("products")
       .select("categories, businesses!inner(category, is_approved, is_active)")
       .eq("is_available", true)
+      .eq("is_draft", false)
       .eq("businesses.is_approved", true)
       .eq("businesses.is_active", true);
 
@@ -112,6 +113,7 @@ async function getAllProducts(category?: string, sort: Sort = "recientes", q?: s
       .from("products")
       .select("*, businesses!inner(id, name, category, is_approved, is_active)")
       .eq("is_available", true)
+      .eq("is_draft", false)
       .eq("businesses.is_approved", true)
       .eq("businesses.is_active", true);
 

@@ -21,14 +21,16 @@
 | 2026-09-15 | [sesion-15-09-2026.md](./sesion-15-09-2026.md) | Se corrieron las 3 migraciones pendientes; nueva forma de revisar/escribir la base real vía la API REST de Supabase sin el dashboard; bug de `CREATE OR REPLACE FUNCTION` corregido; placeholder de contraseña en inglés arreglado; repaso completo del panel de cliente (9 pestañas) con el pendiente del `BellRing` resuelto; seguridad: el rol ya no sube a "business" hasta que se aprueba la tienda, y el menú del panel ya no revela su estructura mientras está pendiente |
 | 2026-09-18 | [sesion-18-09-2026.md](./sesion-18-09-2026.md) | El admin ya solo tiene `/admin`; ajustes al menú de tienda pendiente; parpadeo de íconos corregido; función nueva de Sucursales; logo real en el sidebar; cartel de "Negocio aprobado" con vencimiento a 1 semana; campanas de notificación estandarizadas (ícono lleno + número) en las 3 del proyecto, sin duplicados; empezó la revisión del panel apartado por apartado (Resumen, Productos) |
 | 2026-09-21 | [sesion-21-09-2026.md](./sesion-21-09-2026.md) | Sistema completo de categorías dinámicas con jerarquía padre/hijo (portado de otro proyecto, "Orden Express"), con buscador de autocompletado y creación al vuelo, reemplazando la lista fija `BUSINESS_CATEGORIES` en toda la app; bug real de selección con árbol viejo corregido; formulario de producto: reordenar fotos arrastrando (con otro bug real de duplicado corregido), fotos convertidas a WebP real, sin flechitas en los números, "fantasma" de centavos en Precio, y el buscador de categorías arreglado (ya no se mostraba solo a sí mismo) |
+| 2026-09-22 | [sesion-22-09-2026.md](./sesion-22-09-2026.md) | Descripción de producto sin recortar en la tarjeta (bug de clases de Tailwind), cuadrícula 5×10 con paginación en "Mis Productos"; eliminar o editar un producto no borraba sus fotos de Storage (hallazgo real: el bucket `product-images` no le da permiso de `DELETE` a la llave anónima, arreglado con una ruta de API con service role); las fotos de producto se veían cortadas en miniatura (cambiado `object-cover` por `object-contain` en 5 pantallas); productos incompletos (sin foto, precio o categoría) ahora se guardan como borrador en vez de bloquear el guardado, ocultos del público en 7 pantallas + `get_featured_products`; el formulario de producto ya no pierde lo escrito al hacer clic afuera (bloqueado al crear, advertencia de guardar/descartar al editar si hubo cambios); y "Mis Productos" ahora tiene cambio de vista (tarjetas o lista tipo Excel/punto de venta) y orden (alfabético o por fecha de subida, cada uno en ambos sentidos) |
 
 ---
 
 **Pendientes activos** (detalle en la última entrada donde se encontró cada uno, y en `CLAUDE.md`):
-- Decidir y resolver el hallazgo de seguridad de RLS/llave anónima.
+- Decidir y resolver el hallazgo de seguridad de RLS/llave anónima en las tablas.
+- Revisar si el bucket `business-images` (logo/banner de tienda) tiene el mismo hueco de políticas que `product-images` (llave anónima sin permiso de `DELETE`, arreglado 2026-09-22) — no se probó todavía.
 - Investigar el "✓ Negocio aprobado" incorrecto en `dashboard/business/page.tsx`.
 - Decidir si "Menos de $500" necesita de vuelta un tope real de precio, o se deja como orden simple.
-- `/productos` sigue sin paginación real — el límite de 90 es un techo silencioso, igual que antes.
+- `/productos` sigue sin paginación real — el límite de 90 es un techo silencioso, igual que antes (distinto de la cuadrícula con paginación que sí tiene "Mis Productos" desde 2026-09-22).
 - Idea diferida: contador de productos por pastilla de categoría, para otra sección todavía sin decidir cuál.
 - Decidir si forzar contraseña también en cuentas de Google (configuración de Clerk Dashboard) — el usuario decidió dejarlo como está por ahora.
 - Verificar en vivo (con sesión real de admin) que el redirect a `/admin` funcione, que "Mi panel" siga ganándole al switcher de vendedor si ese admin también es dueño de una tienda, y que el panel de admin se vea bien con categorías dinámicas.
@@ -36,3 +38,4 @@
 - Seguir con la lista de "cosas de seguridad" del usuario — faltan los puntos después del rol prematuro y el menú del panel.
 - Seguir la revisión apartado por apartado del panel de vendedor — quedan Pedidos, Cupones, Escáner QR, Mensajes, Preguntas, Notificaciones, Reseñas, Estadísticas y Configuración.
 - Hacer `git push` — el remoto ya está conectado; confirmar que los commits recientes y los cambios de hoy queden subidos.
+- La regla de borrador (2026-09-22) solo bloquea la interfaz pública; un pedido directo por API a un producto `is_draft = true` no está bloqueado a nivel de base. Riesgo bajo, no resuelto.

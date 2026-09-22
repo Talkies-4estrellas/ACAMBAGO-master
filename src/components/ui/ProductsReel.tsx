@@ -41,7 +41,7 @@ function ReelCard({ item, fixedWidth = true }: { item: ReelItem; fixedWidth?: bo
           src={item.image}
           alt={item.name}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
+          className="object-contain group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         {outOfStock && (

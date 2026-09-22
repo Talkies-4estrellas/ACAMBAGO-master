@@ -115,6 +115,7 @@ async function getProductSearchResults(search: string): Promise<ReelItem[]> {
       .from("products")
       .select("*, businesses!inner(id, name, category, is_approved, is_active)")
       .eq("is_available", true)
+      .eq("is_draft", false)
       .eq("businesses.is_approved", true)
       .eq("businesses.is_active", true)
       .or(`name.ilike.%${term}%,description.ilike.%${term}%`)

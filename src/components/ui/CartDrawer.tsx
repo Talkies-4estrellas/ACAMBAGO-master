@@ -57,7 +57,7 @@ export default function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClo
                 <div key={item.id} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 dark:bg-white/5 dark:border-white/10 rounded-2xl">
                   <div className="relative w-14 h-14 rounded-xl bg-slate-200 dark:bg-white/10 flex-shrink-0 overflow-hidden flex items-center justify-center">
                     {item.image_url ? (
-                      <Image src={item.image_url} alt={item.name} fill className="object-cover" />
+                      <Image src={item.image_url} alt={item.name} fill className="object-contain" />
                     ) : (
                       <Package className="w-5 h-5 text-slate-400 dark:text-gray-500" />
                     )}

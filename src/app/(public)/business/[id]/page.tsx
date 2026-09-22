@@ -53,7 +53,7 @@ async function getSupabaseData(id: string) {
 
     const [bizRes, productsRes, couponsRes, reviewsRes, branchesRes, completion, responseTime] = await Promise.all([
       supabase.from("businesses").select("*").eq("id", id).eq("is_approved", true).single(),
-      supabase.from("products").select("*").eq("business_id", id).eq("is_available", true),
+      supabase.from("products").select("*").eq("business_id", id).eq("is_available", true).eq("is_draft", false),
       supabase.from("coupons").select("*").eq("business_id", id).eq("is_active", true),
       supabase.from("reviews").select("*, profiles(name, avatar_url)").eq("business_id", id).order("created_at", { ascending: false }),
       supabase.from("business_branches").select("*").eq("business_id", id).order("created_at", { ascending: true }),

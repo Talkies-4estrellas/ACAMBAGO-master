@@ -16,13 +16,13 @@ export default function ProductGallery({ images, name }: { images: string[]; nam
               key={i}
               onClick={() => setSelected(i)}
               onMouseEnter={() => setSelected(i)}
-              className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+              className={`w-16 h-16 rounded-xl overflow-hidden border-2 bg-slate-100 dark:bg-white/5 transition-all ${
                 i === selected
                   ? "border-brand-500 opacity-100 shadow-sm"
                   : "border-slate-200 dark:border-white/10 opacity-55 hover:opacity-100"
               }`}
             >
-              <Image src={img} alt={`${name} - ${i + 1}`} width={64} height={64} className="w-full h-full object-cover" />
+              <Image src={img} alt={`${name} - ${i + 1}`} width={64} height={64} className="w-full h-full object-contain" />
             </button>
           ))}
         </div>
@@ -35,7 +35,7 @@ export default function ProductGallery({ images, name }: { images: string[]; nam
             src={images[selected]}
             alt={`${name} - imagen ${selected + 1}`}
             fill
-            className="object-cover"
+            className="object-contain"
             priority={selected === 0}
           />
         </div>
@@ -47,13 +47,13 @@ export default function ProductGallery({ images, name }: { images: string[]; nam
               <button
                 key={i}
                 onClick={() => setSelected(i)}
-                className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 bg-slate-100 dark:bg-white/5 transition-all ${
                   i === selected
                     ? "border-brand-500 opacity-100 shadow-sm"
                     : "border-slate-200 dark:border-white/10 opacity-55 hover:opacity-100"
                 }`}
               >
-                <Image src={img} alt={`${name} - ${i + 1}`} width={64} height={64} className="w-full h-full object-cover" />
+                <Image src={img} alt={`${name} - ${i + 1}`} width={64} height={64} className="w-full h-full object-contain" />
               </button>
             ))}
           </div>

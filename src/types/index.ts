@@ -88,6 +88,10 @@ export interface Product {
   image_url?: string;
   image_urls?: string[];
   is_available: boolean;
+  // true cuando al producto le falta foto, precio, cantidad o categoría —
+  // no se muestra al público hasta que se complete. Opcional porque las
+  // filas demo (siempre completas) y las de antes de esta regla no lo traen.
+  is_draft?: boolean;
   stock_quantity?: number;
   // Categorías propias del producto (puede tener varias, ej. un accesorio
   // vendido por una tienda de ropa), independientes de businesses.category.

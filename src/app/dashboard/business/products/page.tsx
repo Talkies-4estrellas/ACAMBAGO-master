@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { createClient } from "@/lib/supabase/client";
 import { Product } from "@/types";
-import { Plus, Pencil, Trash2, Package, Upload, X, AlertCircle, PauseCircle, PlayCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Upload, X, AlertCircle, PauseCircle, PlayCircle, LayoutGrid, List } from "lucide-react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { DEMO_PRODUCTS } from "@/lib/demo-data";
@@ -17,6 +17,30 @@ import { useCategories } from "@/lib/hooks/use-categories";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const IS_DEMO = !SUPABASE_URL || SUPABASE_URL.includes("your-project") || SUPABASE_URL === "https://placeholder.supabase.co";
 const MAX_IMAGES = 6;
+// 5 columnas x 10 renglones por página, para cuando haya muchos productos.
+const PRODUCTS_PER_PAGE = 50;
+
+type ProductSort = "subida_desc" | "subida_asc" | "nombre_asc" | "nombre_desc";
+
+const SORT_OPTIONS: { id: ProductSort; label: string }[] = [
+  { id: "subida_desc", label: "Subida: más reciente primero" },
+  { id: "subida_asc", label: "Subida: más antiguo primero" },
+  { id: "nombre_asc", label: "Nombre: A-Z" },
+  { id: "nombre_desc", label: "Nombre: Z-A" },
+];
+
+function sortProducts(list: Product[], sort: ProductSort): Product[] {
+  const sorted = [...list];
+  sorted.sort((a, b) => {
+    switch (sort) {
+      case "nombre_asc": return a.name.localeCompare(b.name, "es");
+      case "nombre_desc": return b.name.localeCompare(a.name, "es");
+      case "subida_asc": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    }
+  });
+  return sorted;
+}
 
 interface ImageSlot {
   url?: string;   // ya subida a Storage
@@ -76,15 +100,62 @@ function priceGhostSuffix(raw: string): string {
   return "";
 }
 
+/** "Foto" del estado del formulario en un momento dado, para poder comparar
+ * si algo cambió desde que se abrió el modal de editar. El orden de las
+ * fotos importa (la primera es la portada, reordenar SÍ es un cambio real);
+ * el orden de las categorías no, así que se ordenan antes de comparar. */
+function buildFormSnapshot(data: { name: string; description: string; price: string; stock: string; categoryNames: string[]; imageUrls: string[] }): string {
+  return JSON.stringify({
+    name: data.name,
+    description: data.description,
+    price: data.price,
+    stock: data.stock,
+    categories: [...data.categoryNames].sort(),
+    images: data.imageUrls,
+  });
+}
+
+/** Mismo umbral (0 = agotado, ≤5 = poco) para el badge de la tarjeta y la
+ * celda de cantidad de la vista de lista — un solo lugar decide qué cuenta
+ * como "poco stock". */
+function stockTone(stock?: number | null): "none" | "out" | "low" | "ok" {
+  if (stock == null) return "none";
+  if (stock === 0) return "out";
+  if (stock <= 5) return "low";
+  return "ok";
+}
+
 function StockBadge({ stock }: { stock?: number }) {
-  if (stock == null) return null;
-  if (stock === 0) {
+  const tone = stockTone(stock);
+  if (tone === "none") return null;
+  if (tone === "out") {
     return <span className="absolute top-2 left-2 text-[10px] font-semibold bg-red-600 text-white px-2 py-0.5 rounded-full">Agotado</span>;
   }
-  if (stock <= 5) {
+  if (tone === "low") {
     return <span className="absolute top-2 left-2 text-[10px] font-semibold bg-amber-500 text-white px-2 py-0.5 rounded-full">Últimas {stock}</span>;
   }
   return <span className="absolute top-2 left-2 text-[10px] font-semibold bg-emerald-600 text-white px-2 py-0.5 rounded-full">{stock} en stock</span>;
+}
+
+/** Igual que StockBadge pero como texto de celda, para la vista de lista. */
+function StockCell({ stock }: { stock?: number | null }) {
+  const tone = stockTone(stock);
+  if (tone === "none") return <span className="text-slate-400 dark:text-slate-500">—</span>;
+  if (tone === "out") return <span className="text-red-600 dark:text-red-400 font-medium">Agotado</span>;
+  if (tone === "low") return <span className="text-amber-600 dark:text-amber-400 font-medium">{stock}</span>;
+  return <span className="text-slate-600 dark:text-slate-300">{stock}</span>;
+}
+
+/** Estado de publicación de un producto, como pastilla — para la columna
+ * "Estado" de la vista de lista (la tarjeta ya lo muestra sobre la foto). */
+function StatusBadge({ p }: { p: Product }) {
+  if (p.is_draft) {
+    return <span className="text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 px-2 py-0.5 rounded-full whitespace-nowrap">Borrador</span>;
+  }
+  if (p.is_available === false) {
+    return <span className="text-[11px] font-semibold bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300 px-2 py-0.5 rounded-full whitespace-nowrap">Pausado</span>;
+  }
+  return <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 px-2 py-0.5 rounded-full whitespace-nowrap">Activo</span>;
 }
 
 export default function ProductsPage() {
@@ -103,8 +174,16 @@ export default function ProductsPage() {
   const [images, setImages] = useState<ImageSlot[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<"todos" | "agotados">("todos");
+  // Tarjetas (como hoy) o lista tipo Excel/punto de venta, una fila por producto.
+  const [view, setView] = useState<"grid" | "list">("grid");
+  const [sort, setSort] = useState<ProductSort>("subida_desc");
+  const [page, setPage] = useState(1);
   const [draggingOverImages, setDraggingOverImages] = useState(false);
   const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
+  // Foto del formulario al abrir "Editar", para saber si hubo cambios reales
+  // cuando se hace clic fuera del recuadro (no se necesita al crear, ahí el
+  // clic afuera simplemente no hace nada).
+  const initialSnapshotRef = useRef<string>("");
 
   const supabase = createClient();
   const { tree: categoryTree, addCreated } = useCategories();
@@ -149,6 +228,25 @@ export default function ProductsPage() {
     const existing = p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [];
     setImages(existing.map((url) => ({ url, preview: url })));
     setShowForm(true);
+    initialSnapshotRef.current = buildFormSnapshot({
+      name: p.name,
+      description: p.description ?? "",
+      price: String(p.price),
+      stock: p.stock_quantity != null ? String(p.stock_quantity) : "",
+      categoryNames: names,
+      imageUrls: existing,
+    });
+  };
+
+  /** true si algo del formulario cambió desde que se abrió "Editar". */
+  const hasUnsavedChanges = () => {
+    const currentImages = images.map((img) => img.url ?? `nueva:${img.file?.name}-${img.file?.size}`);
+    const current = buildFormSnapshot({
+      name, description, price, stock,
+      categoryNames: picksToNames(picks, categoryTree),
+      imageUrls: currentImages,
+    });
+    return current !== initialSnapshotRef.current;
   };
 
   const addFiles = (fileList: FileList | null) => {
@@ -195,16 +293,19 @@ export default function ProductsPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    await performSave();
+  };
+
+  const performSave = async () => {
     if (!businessId) {
       toast.error("No se encontró tu negocio. Recarga la página.");
       return;
     }
-    if (picks.length === 0) {
-      toast.error("Elige al menos una categoría para el producto");
-      return;
-    }
     setSaving(true);
     const categories = picksToNames(picks, categoryTree);
+    // El precio ya no bloquea guardar si se deja vacío — solo decide, junto
+    // con fotos/cantidad/categoría, si el producto queda como borrador.
+    const priceValue = price === "" ? 0 : parseFloat(price) || 0;
 
     const finalUrls: string[] = [];
     for (const img of images) {
@@ -238,22 +339,43 @@ export default function ProductsPage() {
     const image_urls = finalUrls;
     const stock_quantity = stock === "" ? null : parseInt(stock, 10);
 
+    // Mínimo para que el producto se muestre al público: al menos 1 foto,
+    // precio y categoría. Si falta algo, se guarda igual pero como borrador
+    // (is_draft) — nunca se bloquea el guardado por esto. Cantidad NO
+    // cuenta: dejarla vacía es una elección válida ("no llevo inventario"),
+    // no un dato incompleto.
+    const is_draft = !(finalUrls.length > 0 && priceValue > 0 && categories.length > 0);
+
     if (editing) {
-      const { error } = await supabase.from("products").update({ name, description, price: parseFloat(price), image_url, image_urls, stock_quantity, categories }).eq("id", editing.id);
+      // Fotos que estaban en el producto original y ya no quedaron en
+      // finalUrls (el usuario las quitó y/o las reemplazó) — hay que
+      // borrarlas de Storage también, o quedan huérfanas para siempre.
+      const originalUrls: string[] = editing.image_urls?.length ? editing.image_urls : editing.image_url ? [editing.image_url] : [];
+      const removedUrls = originalUrls.filter((url) => !finalUrls.includes(url));
+
+      const { error } = await supabase.from("products").update({ name, description, price: priceValue, image_url, image_urls, stock_quantity, categories, is_draft }).eq("id", editing.id);
       if (error) {
         toast.error(`Error al actualizar: ${error.message}`);
       } else {
-        setProducts((prev) => prev.map((p) => p.id === editing.id ? { ...p, name, description, price: parseFloat(price), image_url, image_urls, stock_quantity: stock_quantity ?? undefined, categories } : p));
-        toast.success("Producto actualizado");
+        setProducts((prev) => prev.map((p) => p.id === editing.id ? { ...p, name, description, price: priceValue, image_url, image_urls, stock_quantity: stock_quantity ?? undefined, categories, is_draft } : p));
+        toast.success(is_draft ? "Producto actualizado como borrador: aún no se muestra a tus clientes" : "Producto actualizado");
         setShowForm(false);
+
+        if (removedUrls.length > 0) {
+          fetch("/api/products", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ product_id: editing.id, urls: removedUrls }),
+          }).catch(() => {});
+        }
       }
     } else {
-      const { data, error } = await supabase.from("products").insert({ business_id: businessId, name, description, price: parseFloat(price), image_url, image_urls, stock_quantity, categories }).select().single();
+      const { data, error } = await supabase.from("products").insert({ business_id: businessId, name, description, price: priceValue, image_url, image_urls, stock_quantity, categories, is_draft }).select().single();
       if (error) {
         toast.error(`Error al guardar: ${error.message}`);
       } else if (data) {
         setProducts((prev) => [data as Product, ...prev]);
-        toast.success("Producto agregado");
+        toast.success(is_draft ? "Producto guardado como borrador: complétalo para que se muestre a tus clientes" : "Producto agregado");
         setShowForm(false);
       }
     }
@@ -273,13 +395,27 @@ export default function ProductsPage() {
     toast.success(is_available ? "Producto activado, ya se ve en tu tienda" : "Producto pausado, no se ve en tu tienda");
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (p: Product) => {
     if (IS_DEMO) { toast("Conecta Supabase para eliminar productos", { icon: "ℹ️" }); return; }
     if (!confirm("¿Eliminar este producto?")) return;
-    await supabase.from("products").delete().eq("id", id);
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+
+    // Por una ruta de API, no directo desde el navegador: borrar las fotos
+    // en Storage necesita la service role — la llave anónima del cliente
+    // solo tiene permiso de INSERT/SELECT en el bucket product-images, no
+    // DELETE (confirmado en vivo, da 403).
+    const res = await fetch(`/api/products?id=${p.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("No se pudo eliminar el producto");
+      return;
+    }
+    setProducts((prev) => prev.filter((item) => item.id !== p.id));
     toast.success("Producto eliminado");
   };
+
+  const filteredProducts = sortProducts(products.filter((p) => tab === "todos" || p.stock_quantity === 0), sort);
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const pageProducts = filteredProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
 
   return (
     <div>
@@ -298,6 +434,34 @@ export default function ProductsPage() {
               <NotificationBellDropdown userId={user.id} viewAllHref="/dashboard/business/notificaciones" />
             </div>
           )}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => setView("grid")}
+              title="Vista de tarjetas"
+              aria-label="Vista de tarjetas"
+              className={`p-1.5 rounded-lg transition-colors ${
+                view === "grid"
+                  ? "bg-white dark:bg-white/10 shadow-sm text-slate-900 dark:text-white"
+                  : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              title="Vista de lista"
+              aria-label="Vista de lista"
+              className={`p-1.5 rounded-lg transition-colors ${
+                view === "list"
+                  ? "bg-white dark:bg-white/10 shadow-sm text-slate-900 dark:text-white"
+                  : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+              }`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
           <button
             onClick={openNew}
             className="btn-primary flex items-center gap-2 text-sm shadow-sm"
@@ -307,27 +471,38 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      {products.some((p) => p.stock_quantity === 0) && (
-        <div className="flex gap-2 mb-4">
-          {[
-            { id: "todos" as const, label: "Todos" },
-            { id: "agotados" as const, label: "Agotados" },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                tab === t.id
-                  ? "bg-slate-900 text-white dark:bg-white dark:text-gray-900"
-                  : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
-              }`}
-            >
-              {t.label}
-            </button>
+      {/* Tabs + orden */}
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        {products.some((p) => p.stock_quantity === 0) ? (
+          <div className="flex gap-2">
+            {[
+              { id: "todos" as const, label: "Todos" },
+              { id: "agotados" as const, label: "Agotados" },
+            ].map((t) => (
+              <button
+                key={t.id}
+                onClick={() => { setTab(t.id); setPage(1); }}
+                className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  tab === t.id
+                    ? "bg-slate-900 text-white dark:bg-white dark:text-gray-900"
+                    : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        ) : <div />}
+        <select
+          value={sort}
+          onChange={(e) => { setSort(e.target.value as ProductSort); setPage(1); }}
+          className="text-sm rounded-full px-3.5 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-none outline-none cursor-pointer"
+        >
+          {SORT_OPTIONS.map((o) => (
+            <option key={o.id} value={o.id}>{o.label}</option>
           ))}
-        </div>
-      )}
+        </select>
+      </div>
 
       {/* Demo banner */}
       {IS_DEMO && (
@@ -342,7 +517,22 @@ export default function ProductsPage() {
 
       {/* Form modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowForm(false)}>
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+          onClick={() => {
+            // Al crear: un clic afuera no debe borrar lo ya escrito, así
+            // que no hace nada — hay que usar "Cancelar" o la X a propósito.
+            if (!editing) return;
+            // Al editar: si no cambió nada, cerrar directo; si cambió algo,
+            // preguntar si guardar o descartar antes de cerrar.
+            if (!hasUnsavedChanges()) { setShowForm(false); return; }
+            if (confirm("Tienes cambios sin guardar en este producto. Aceptar para guardarlos, Cancelar para descartarlos.")) {
+              performSave();
+            } else {
+              setShowForm(false);
+            }
+          }}
+        >
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-bold text-lg text-slate-900 dark:text-white">
@@ -369,12 +559,12 @@ export default function ProductsPage() {
                         if (draggingImageIndex !== null) moveImage(draggingImageIndex, i);
                         setDraggingImageIndex(null);
                       }}
-                      className={`relative h-24 rounded-xl overflow-hidden border cursor-move transition-opacity ${
+                      className={`relative h-24 rounded-xl overflow-hidden border cursor-move transition-opacity bg-slate-50 dark:bg-white/5 ${
                         draggingImageIndex === i ? "opacity-40" : ""
                       } border-slate-200 dark:border-white/10`}
                       title="Arrastra para cambiar el orden"
                     >
-                      <Image src={img.preview} alt={`Foto ${i + 1}`} fill draggable={false} className="object-cover pointer-events-none" />
+                      <Image src={img.preview} alt={`Foto ${i + 1}`} fill draggable={false} className="object-contain pointer-events-none" />
                       <button
                         type="button"
                         onClick={() => removeImage(i)}
@@ -425,7 +615,7 @@ export default function ProductsPage() {
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="input resize-none" rows={2} placeholder="Descripción breve del producto" />
               </div>
               <div>
-                <label className="label">Precio (MXN) *</label>
+                <label className="label">Precio (MXN)</label>
                 <div className="relative w-full bg-white border border-slate-300 rounded-xl focus-within:ring-2 focus-within:ring-brand-500 focus-within:border-transparent transition-all duration-200 dark:bg-white/10 dark:border-white/20">
                   {/* Capa fantasma: mismo texto ya escrito (invisible) + lo
                       que falta para completar 2 decimales (en gris) —
@@ -435,7 +625,6 @@ export default function ProductsPage() {
                     <span className="text-slate-400 dark:text-slate-500 whitespace-pre">{priceGhostSuffix(price)}</span>
                   </div>
                   <input
-                    required
                     type="text"
                     inputMode="decimal"
                     value={price}
@@ -448,10 +637,10 @@ export default function ProductsPage() {
               <div>
                 <label className="label">Cantidad en inventario</label>
                 <input type="number" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} className="input no-spinner" placeholder="Sin control de inventario" />
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Déjalo vacío si no quieres llevar el conteo; se descuenta solo con cada venta.</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Déjala vacía si no quieres llevar el conteo; se descuenta solo con cada venta.</p>
               </div>
               <div>
-                <label className="label">Categorías del producto *</label>
+                <label className="label">Categorías del producto</label>
                 <CategoryPicker
                   mode="multi"
                   tree={categoryTree}
@@ -461,6 +650,10 @@ export default function ProductsPage() {
                 />
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">Elige una o varias; busca una existente o crea una nueva con &quot;+ Nueva&quot;. Así aparece en cada categoría aunque no sea el giro principal de tu tienda.</p>
               </div>
+
+              <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-lg px-3 py-2">
+                Necesitas al menos 1 foto, precio y categoría para que el producto se muestre a tus clientes. Si falta algo, se guarda como <strong>borrador</strong> y solo tú lo ves aquí, hasta que lo completes.
+              </p>
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1">Cancelar</button>
@@ -477,8 +670,8 @@ export default function ProductsPage() {
 
       {/* Product grid */}
       {!loaded ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {[1, 2, 3].map((i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="card animate-pulse">
               <div className="h-28 sm:h-40 bg-slate-100 dark:bg-white/5" />
               <div className="p-3 sm:p-4 space-y-2">
@@ -498,16 +691,20 @@ export default function ProductsPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {products.filter((p) => tab === "todos" || p.stock_quantity === 0).map((p) => (
-            <div key={p.id} className={`card overflow-hidden group hover:shadow-md transition-all ${p.is_available === false ? "opacity-60" : ""}`}>
+        <>
+        {view === "grid" ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          {pageProducts.map((p) => (
+            <div key={p.id} className={`card overflow-hidden group hover:shadow-md transition-all ${p.is_available === false || p.is_draft ? "opacity-60" : ""}`}>
               <div className="h-28 sm:h-40 bg-slate-50 dark:bg-white/5 relative flex items-center justify-center overflow-hidden">
                 {p.image_url ? (
-                  <Image src={p.image_url} alt={p.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <Image src={p.image_url} alt={p.name} fill className="object-contain group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <Package className="w-10 h-10 text-slate-300 dark:text-slate-600" />
                 )}
-                {p.is_available === false ? (
+                {p.is_draft ? (
+                  <span className="absolute top-2 left-2 text-[10px] font-semibold bg-amber-500 text-white px-2 py-0.5 rounded-full">Borrador</span>
+                ) : p.is_available === false ? (
                   <span className="absolute top-2 left-2 text-[10px] font-semibold bg-slate-600 text-white px-2 py-0.5 rounded-full">Pausado</span>
                 ) : (
                   <StockBadge stock={p.stock_quantity} />
@@ -521,7 +718,7 @@ export default function ProductsPage() {
               <div className="p-3 sm:p-4">
                 <p className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base line-clamp-1">{p.name}</p>
                 {p.description && (
-                  <p className="hidden sm:block text-sm text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{p.description}</p>
+                  <p className="hidden sm:line-clamp-2 text-sm text-slate-500 dark:text-slate-400 mt-0.5">{p.description}</p>
                 )}
                 <p className="text-brand-600 dark:text-brand-400 font-bold text-base sm:text-lg mt-1 sm:mt-2">{formatPrice(p.price)}</p>
 
@@ -546,7 +743,7 @@ export default function ProductsPage() {
                     <Pencil className="w-3.5 h-3.5 flex-shrink-0" /> <span className="hidden sm:inline">Editar</span>
                   </button>
                   <button
-                    onClick={() => handleDelete(p.id)}
+                    onClick={() => handleDelete(p)}
                     title="Eliminar producto"
                     className="flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30 transition-colors overflow-hidden"
                   >
@@ -557,6 +754,94 @@ export default function ProductsPage() {
             </div>
           ))}
         </div>
+        ) : (
+        <div className="card overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-left text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                <th className="px-3 py-2.5 w-14"></th>
+                <th className="px-3 py-2.5">Producto</th>
+                <th className="px-3 py-2.5 text-right">Precio</th>
+                <th className="px-3 py-2.5 text-right">Cantidad</th>
+                <th className="px-3 py-2.5">Categorías</th>
+                <th className="px-3 py-2.5">Estado</th>
+                <th className="px-3 py-2.5 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/10">
+              {pageProducts.map((p) => (
+                <tr key={p.id} className={`hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${p.is_available === false || p.is_draft ? "opacity-60" : ""}`}>
+                  <td className="px-3 py-2">
+                    <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 relative overflow-hidden flex items-center justify-center flex-shrink-0">
+                      {p.image_url ? (
+                        <Image src={p.image_url} alt={p.name} fill className="object-contain" />
+                      ) : (
+                        <Package className="w-4 h-4 text-slate-300 dark:text-slate-600" />
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 font-medium text-slate-900 dark:text-white max-w-[240px] truncate">{p.name}</td>
+                  <td className="px-3 py-2 text-right text-brand-600 dark:text-brand-400 font-semibold whitespace-nowrap">{formatPrice(p.price)}</td>
+                  <td className="px-3 py-2 text-right whitespace-nowrap"><StockCell stock={p.stock_quantity} /></td>
+                  <td className="px-3 py-2 text-slate-500 dark:text-slate-400 max-w-[180px] truncate">{p.categories?.length ? p.categories.join(", ") : "—"}</td>
+                  <td className="px-3 py-2"><StatusBadge p={p} /></td>
+                  <td className="px-3 py-2 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => handleToggleAvailability(p)}
+                        title={p.is_available === false ? "Activar producto" : "Pausar producto"}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          p.is_available === false
+                            ? "bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                            : "bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200"
+                        }`}
+                      >
+                        {p.is_available === false ? <PlayCircle className="w-3.5 h-3.5" /> : <PauseCircle className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        onClick={() => openEdit(p)}
+                        title="Editar producto"
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p)}
+                        title="Eliminar producto"
+                        className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 mt-6">
+            <button
+              type="button"
+              onClick={() => setPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="btn-secondary text-sm px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <span className="text-sm text-slate-500 dark:text-slate-400">Página {currentPage} de {totalPages}</span>
+            <button
+              type="button"
+              onClick={() => setPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="btn-secondary text-sm px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );
