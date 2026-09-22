@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { createClient } from "@/lib/supabase/client";
 import { Product } from "@/types";
-import { Plus, Pencil, Trash2, Package, Upload, X, AlertCircle, PauseCircle, PlayCircle, LayoutGrid, List } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Upload, X, AlertCircle, PauseCircle, PlayCircle, LayoutGrid, List, Search } from "lucide-react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { DEMO_PRODUCTS } from "@/lib/demo-data";
@@ -177,6 +177,7 @@ export default function ProductsPage() {
   // Tarjetas (como hoy) o lista tipo Excel/punto de venta, una fila por producto.
   const [view, setView] = useState<"grid" | "list">("grid");
   const [sort, setSort] = useState<ProductSort>("subida_desc");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [draggingOverImages, setDraggingOverImages] = useState(false);
   const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
@@ -412,7 +413,11 @@ export default function ProductsPage() {
     toast.success("Producto eliminado");
   };
 
-  const filteredProducts = sortProducts(products.filter((p) => tab === "todos" || p.stock_quantity === 0), sort);
+  const searchTerm = search.trim().toLowerCase();
+  const filteredProducts = sortProducts(
+    products.filter((p) => (tab === "todos" || p.stock_quantity === 0) && (!searchTerm || p.name.toLowerCase().includes(searchTerm))),
+    sort
+  );
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
   const pageProducts = filteredProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
@@ -469,6 +474,18 @@ export default function ProductsPage() {
             <Plus className="w-4 h-4" /> Agregar producto
           </button>
         </div>
+      </div>
+
+      {/* Buscador por nombre */}
+      <div className="relative mb-4">
+        <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          placeholder="Buscar por nombre..."
+          className="input pl-10"
+        />
       </div>
 
       {/* Tabs + orden */}
@@ -689,6 +706,14 @@ export default function ProductsPage() {
           <button onClick={openNew} className="btn-primary text-sm mx-auto flex items-center gap-2 w-fit">
             <Plus className="w-4 h-4" /> Agregar el primero
           </button>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="card p-14 text-center">
+          <Search className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+          <p className="text-slate-600 dark:text-slate-300 font-medium mb-1">Sin resultados</p>
+          <p className="text-slate-400 dark:text-slate-500 text-sm">
+            {searchTerm ? <>Ningún producto coincide con &quot;{search}&quot;</> : "No hay productos en este filtro"}
+          </p>
         </div>
       ) : (
         <>
