@@ -29,13 +29,6 @@ function ReelCard({ item, fixedWidth = true }: { item: ReelItem; fixedWidth?: bo
 
   return (
     <div className={`${fixedWidth ? "w-56 flex-shrink-0" : "w-full"} card group hover:shadow-md hover:border-brand-300 dark:hover:border-brand-500/40 dark:hover:bg-white/10 transition-all duration-200 relative flex flex-col`}>
-      {/* Enlace invisible que cubre toda la card excepto el botón */}
-      <Link
-        href={`/product/${item.id}`}
-        className="absolute inset-0 z-0 rounded-2xl"
-        aria-label={`Ver ${item.name}`}
-      />
-
       <div className="relative h-32 sm:h-44 bg-gradient-to-br from-brand-50 to-brand-100 dark:from-brand-900/50 dark:to-brand-800/50 overflow-hidden">
         <Image
           src={item.image}
@@ -76,6 +69,17 @@ function ReelCard({ item, fixedWidth = true }: { item: ReelItem; fixedWidth?: bo
           />
         </div>
       </div>
+
+      {/* Enlace invisible que cubre toda la card excepto los botones (z-10) —
+          va al final del JSX, no al principio, para pintar por encima de la
+          foto: un div posicionado (la foto) que aparece después en el DOM
+          que este mismo Link tapaba los clics aunque el Link tuviera
+          "position: absolute" primero, por el orden de apilamiento. */}
+      <Link
+        href={`/product/${item.id}`}
+        className="absolute inset-0 z-0 rounded-2xl"
+        aria-label={`Ver ${item.name}`}
+      />
     </div>
   );
 }

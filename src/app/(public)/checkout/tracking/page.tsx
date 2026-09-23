@@ -2,10 +2,12 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Clock, Package, Truck, MapPin, Phone, Star, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Package, Truck, MapPin, Phone, Star, XCircle, Ban } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { playNotificationSound } from "@/lib/notification-sound";
+import { createNotification } from "@/lib/notifications";
 import { Order } from "@/types";
+import toast from "react-hot-toast";
 
 const TRACKING_STEPS = [
   {
@@ -69,7 +71,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const IS_DEMO = !SUPABASE_URL || SUPABASE_URL.includes("your-project") || SUPABASE_URL === "https://placeholder.supabase.co";
 
-type TrackedOrder = Order & { businesses: { name: string; address: string; whatsapp: string | null } | null };
+type TrackedOrder = Order & { businesses: { name: string; address: string; whatsapp: string | null; owner_id: string } | null };
 
 function TrackingContent() {
   const searchParams = useSearchParams();
@@ -82,6 +84,7 @@ function TrackingContent() {
   const [demoDone, setDemoDone] = useState(false);
   const [realOrder, setRealOrder] = useState<TrackedOrder | null>(null);
   const [loadingReal, setLoadingReal] = useState(isReal);
+  const [cancelling, setCancelling] = useState(false);
 
   // Auto-advance demo steps (solo cuando no es un pedido real)
   useEffect(() => {
@@ -116,7 +119,7 @@ function TrackingContent() {
 
     supabase
       .from("orders")
-      .select("*, order_items(*), businesses(name, address, whatsapp)")
+      .select("*, order_items(*), businesses(name, address, whatsapp, owner_id)")
       .eq("id", orderId)
       .single()
       .then(({ data }) => {
@@ -138,6 +141,33 @@ function TrackingContent() {
 
     return () => { supabase.removeChannel(channel); };
   }, [isReal, orderId]);
+
+  const cancelOrder = async () => {
+    if (!isReal) return;
+    if (!confirm("¿Seguro que quieres cancelar este pedido? La tienda será notificada.")) return;
+    setCancelling(true);
+    const supabase = createClient();
+    // Regresa también el stock que ya se había descontado al hacer el pedido.
+    const { error } = await supabase.rpc("cancel_order_and_restore_stock", { p_order_id: orderId });
+    setCancelling(false);
+    if (error) {
+      toast.error("No se pudo cancelar el pedido");
+      return;
+    }
+    setRealOrder((prev) => (prev ? { ...prev, status: "cancelado" } : prev));
+    toast.success("Pedido cancelado");
+
+    const ownerId = realOrder?.businesses?.owner_id;
+    if (ownerId) {
+      await createNotification(supabase, {
+        user_id: ownerId,
+        type: "new_order",
+        title: `${realOrder?.customer_name ?? "El cliente"} canceló su pedido`,
+        body: `Pedido #${orderId.slice(0, 8)}`,
+        link: "/dashboard/business/orders",
+      });
+    }
+  };
 
   const isCancelled = isReal && realOrder?.status === "cancelado";
   const steps = isReal ? REAL_STEPS : TRACKING_STEPS;
@@ -350,6 +380,16 @@ function TrackingContent() {
             </div>
             <p className="text-xs text-slate-400 dark:text-gray-500">(Función demo)</p>
           </div>
+        )}
+
+        {isReal && !isCancelled && !done && (
+          <button
+            onClick={cancelOrder}
+            disabled={cancelling}
+            className="w-full py-3.5 rounded-2xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 font-medium text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            <Ban className="w-4 h-4" /> {cancelling ? "Cancelando..." : "Cancelar pedido"}
+          </button>
         )}
 
         <button

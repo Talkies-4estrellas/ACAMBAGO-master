@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { ShoppingBag, Phone, Check, Truck, Clock, Search, AlertTriangle, Store, MapPin, MessageSquare, User } from "lucide-react";
+import { ShoppingBag, Phone, Check, Truck, Clock, Search, AlertTriangle, Store, MapPin, MessageSquare, User, X } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Order, OrderStatus, PaymentMethod, DeliveryMethod } from "@/types";
@@ -175,7 +175,11 @@ export default function OrdersPage() {
 
   const updateStatus = async (order: OrderRow, status: OrderStatus) => {
     if (IS_DEMO) { toast("Conecta Supabase para actualizar pedidos reales", { icon: "ℹ️" }); return; }
-    const { error } = await supabase.from("orders").update({ status }).eq("id", order.id);
+    // Cancelar regresa también el stock que ya se había descontado al hacer
+    // el pedido — una sola función atómica, en vez de un update directo.
+    const { error } = status === "cancelado"
+      ? await supabase.rpc("cancel_order_and_restore_stock", { p_order_id: order.id })
+      : await supabase.from("orders").update({ status }).eq("id", order.id);
     if (error) { toast.error("Error al actualizar el pedido"); return; }
     setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status } : o)));
     toast.success("Pedido actualizado");
@@ -397,6 +401,18 @@ export default function OrdersPage() {
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20 rounded-lg text-xs font-medium hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors"
                         >
                           <Check className="w-3.5 h-3.5" /> Marcar como entregado
+                        </button>
+                      )}
+                      {(order.status === "pendiente" || order.status === "en_camino") && (
+                        <button
+                          onClick={() => {
+                            if (confirm("¿Seguro que quieres cancelar este pedido? Esto le avisará al cliente.")) {
+                              updateStatus(order, "cancelado");
+                            }
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20 rounded-lg text-xs font-medium hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" /> Cancelar pedido
                         </button>
                       )}
                     </div>
