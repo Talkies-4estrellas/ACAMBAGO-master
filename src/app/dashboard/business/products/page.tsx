@@ -179,6 +179,8 @@ export default function ProductsPage() {
   const [sort, setSort] = useState<ProductSort>("subida_desc");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  // Selección para acciones en lote (solo vista de lista, por ahora).
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [draggingOverImages, setDraggingOverImages] = useState(false);
   const [draggingImageIndex, setDraggingImageIndex] = useState<number | null>(null);
   // Foto del formulario al abrir "Editar", para saber si hubo cambios reales
@@ -413,6 +415,50 @@ export default function ProductsPage() {
     toast.success("Producto eliminado");
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllOnPage = (ids: string[]) => {
+    setSelectedIds((prev) => {
+      const allSelected = ids.every((id) => prev.has(id));
+      const next = new Set(prev);
+      ids.forEach((id) => (allSelected ? next.delete(id) : next.add(id)));
+      return next;
+    });
+  };
+
+  const bulkSetAvailability = async (is_available: boolean) => {
+    if (IS_DEMO) { toast("Conecta Supabase para actualizar productos reales", { icon: "ℹ️" }); return; }
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase.from("products").update({ is_available }).in("id", ids);
+    if (error) { toast.error("No se pudieron actualizar los productos"); return; }
+    setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, is_available } : p)));
+    setSelectedIds(new Set());
+    toast.success(is_available ? `${ids.length} producto${ids.length === 1 ? "" : "s"} activado${ids.length === 1 ? "" : "s"}` : `${ids.length} producto${ids.length === 1 ? "" : "s"} pausado${ids.length === 1 ? "" : "s"}`);
+  };
+
+  const bulkDelete = async () => {
+    if (IS_DEMO) { toast("Conecta Supabase para eliminar productos", { icon: "ℹ️" }); return; }
+    const ids = Array.from(selectedIds);
+    if (!confirm(`¿Eliminar ${ids.length} producto${ids.length === 1 ? "" : "s"}? Esto no se puede deshacer.`)) return;
+
+    const results = await Promise.all(
+      ids.map(async (id) => ({ id, ok: (await fetch(`/api/products?id=${id}`, { method: "DELETE" })).ok }))
+    );
+    const succeededIds = results.filter((r) => r.ok).map((r) => r.id);
+    const failedCount = results.length - succeededIds.length;
+
+    setProducts((prev) => prev.filter((p) => !succeededIds.includes(p.id)));
+    setSelectedIds(new Set());
+    if (succeededIds.length > 0) toast.success(`${succeededIds.length} producto${succeededIds.length === 1 ? "" : "s"} eliminado${succeededIds.length === 1 ? "" : "s"}`);
+    if (failedCount > 0) toast.error(`${failedCount} producto${failedCount === 1 ? "" : "s"} no se pudo${failedCount === 1 ? "" : "n"} eliminar`);
+  };
+
   const searchTerm = search.trim().toLowerCase();
   const filteredProducts = sortProducts(
     products.filter((p) => (tab === "todos" || p.stock_quantity === 0) && (!searchTerm || p.name.toLowerCase().includes(searchTerm))),
@@ -482,7 +528,7 @@ export default function ProductsPage() {
         <input
           type="text"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); setSelectedIds(new Set()); }}
           placeholder="Buscar por nombre..."
           className="input pl-10"
         />
@@ -498,7 +544,7 @@ export default function ProductsPage() {
             ].map((t) => (
               <button
                 key={t.id}
-                onClick={() => { setTab(t.id); setPage(1); }}
+                onClick={() => { setTab(t.id); setPage(1); setSelectedIds(new Set()); }}
                 className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   tab === t.id
                     ? "bg-slate-900 text-white dark:bg-white dark:text-gray-900"
@@ -780,10 +826,50 @@ export default function ProductsPage() {
           ))}
         </div>
         ) : (
+        <>
+        {selectedIds.size > 0 && (
+          <div className="card p-3 mb-3 flex items-center gap-3 flex-wrap bg-brand-50 dark:bg-brand-500/10 border-brand-200 dark:border-brand-500/20">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{selectedIds.size} seleccionado{selectedIds.size === 1 ? "" : "s"}</span>
+            <div className="flex items-center gap-2 ml-auto flex-wrap">
+              <button
+                onClick={() => bulkSetAvailability(false)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 transition-colors"
+              >
+                <PauseCircle className="w-3.5 h-3.5" /> Pausar
+              </button>
+              <button
+                onClick={() => bulkSetAvailability(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 transition-colors"
+              >
+                <PlayCircle className="w-3.5 h-3.5" /> Activar
+              </button>
+              <button
+                onClick={bulkDelete}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Eliminar
+              </button>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs font-medium text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 px-2"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
         <div className="card overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-left text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                <th className="px-3 py-2.5 w-8">
+                  <input
+                    type="checkbox"
+                    checked={pageProducts.length > 0 && pageProducts.every((p) => selectedIds.has(p.id))}
+                    onChange={() => toggleSelectAllOnPage(pageProducts.map((p) => p.id))}
+                    className="w-4 h-4 rounded accent-brand-500 cursor-pointer"
+                  />
+                </th>
                 <th className="px-3 py-2.5 w-14"></th>
                 <th className="px-3 py-2.5">Producto</th>
                 <th className="px-3 py-2.5 text-right">Precio</th>
@@ -796,6 +882,14 @@ export default function ProductsPage() {
             <tbody className="divide-y divide-slate-100 dark:divide-white/10">
               {pageProducts.map((p) => (
                 <tr key={p.id} className={`hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${p.is_available === false || p.is_draft ? "opacity-60" : ""}`}>
+                  <td className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(p.id)}
+                      onChange={() => toggleSelect(p.id)}
+                      className="w-4 h-4 rounded accent-brand-500 cursor-pointer"
+                    />
+                  </td>
                   <td className="px-3 py-2">
                     <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-white/5 relative overflow-hidden flex items-center justify-center flex-shrink-0">
                       {p.image_url ? (
@@ -844,6 +938,7 @@ export default function ProductsPage() {
             </tbody>
           </table>
         </div>
+        </>
         )}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-3 mt-6">
