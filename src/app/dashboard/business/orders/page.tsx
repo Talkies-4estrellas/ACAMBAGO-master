@@ -161,6 +161,19 @@ export default function OrdersPage() {
           setOrders((prev) => [orderToRow(fullOrder), ...prev]);
         }
       )
+      .on(
+        // El comprador puede cancelar desde su propio seguimiento, o el
+        // mismo pedido puede estar abierto en otra pestaña/dispositivo — sin
+        // esto, esta lista se quedaba con el estado viejo hasta recargar.
+        // Solo se actualiza el status: los demas campos (cliente, items,
+        // etc.) no cambian con una actualizacion de estado.
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `business_id=eq.${bizId}` },
+        (payload) => {
+          const updated = payload.new as Order;
+          setOrders((prev) => prev.map((o) => (o.id === updated.id ? { ...o, status: updated.status } : o)));
+        }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
