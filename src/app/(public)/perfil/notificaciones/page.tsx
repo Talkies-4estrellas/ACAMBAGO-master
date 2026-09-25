@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Bell, Package, MessageSquare, MessageCircle } from "lucide-react";
+import { Bell, Package, MessageSquare, MessageCircle, Bookmark } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Notification } from "@/types";
 
@@ -16,6 +16,7 @@ const IS_DEMO = !SUPABASE_URL || SUPABASE_URL.includes("your-project") || SUPABA
 function iconFor(type: Notification["type"]) {
   if (type === "question_answered") return MessageSquare;
   if (type === "new_message") return MessageCircle;
+  if (type === "reservation_status") return Bookmark;
   return Package;
 }
 

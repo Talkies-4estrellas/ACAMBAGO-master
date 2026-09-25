@@ -22,6 +22,7 @@ import TrackRecentlyViewed from "./TrackRecentlyViewed";
 import ProductQA from "./ProductQA";
 import AddToCartButton from "@/components/ui/AddToCartButton";
 import MessageSellerButton from "@/components/ui/MessageSellerButton";
+import ReserveProductButton from "@/components/ui/ReserveProductButton";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=80";
 
@@ -39,6 +40,7 @@ export default async function ProductPage({
     ? DEMO_ALL_PRODUCTS.filter((p) => p.business_id === product!.business_id && p.id !== id).slice(0, 6)
     : [];
   let questions: import("@/types").ProductQuestion[] = [];
+  let businessBranches: import("@/types").BusinessBranch[] = [];
 
   if (!isDemoProduct) {
     try {
@@ -49,14 +51,16 @@ export default async function ProductPage({
         const { data } = await supabase.from("products").select("*").eq("id", id).eq("is_draft", false).single();
         if (data) {
           product = data;
-          const [{ data: bizData }, { data: relatedData }, { data: questionsData }] = await Promise.all([
+          const [{ data: bizData }, { data: relatedData }, { data: questionsData }, { data: branchesData }] = await Promise.all([
             supabase.from("businesses").select("*").eq("id", data.business_id).single(),
             supabase.from("products").select("*").eq("business_id", data.business_id).eq("is_available", true).eq("is_draft", false).neq("id", id).limit(6),
             supabase.from("product_questions").select("*").eq("product_id", id).order("created_at", { ascending: false }),
+            supabase.from("business_branches").select("*").eq("business_id", data.business_id).order("name"),
           ]);
           business = bizData ?? null;
           related = relatedData ?? [];
           questions = questionsData ?? [];
+          businessBranches = branchesData ?? [];
         }
       }
     } catch {}
@@ -238,6 +242,13 @@ export default async function ProductPage({
               product={{ id: product.id, business_id: product.business_id, name: product.name, price: product.price, image_url: images[0] }}
               disabled={!extra && product.stock_quantity === 0}
             />
+            {!isDemoProduct && business && product.deposit_amount != null && (
+              <ReserveProductButton
+                product={{ id: product.id, business_id: product.business_id, name: product.name, price: product.price, deposit_amount: product.deposit_amount }}
+                businessBranches={businessBranches}
+                bankEnabled={!!business.bank_clabe}
+              />
+            )}
             {whatsappUrl && (
               <a
                 href={whatsappUrl}

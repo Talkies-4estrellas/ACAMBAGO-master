@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, User } from "lucide-react";
+import { ArrowLeft, User, Bookmark } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { loadOwnedBusinesses } from "@/lib/current-business";
 import ChatThread from "@/components/ui/ChatThread";
-import { ChatMessage, Conversation } from "@/types";
+import CreateReservationModal from "@/components/ui/CreateReservationModal";
+import { ChatMessage, Conversation, BusinessBranch } from "@/types";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const IS_DEMO = !SUPABASE_URL || SUPABASE_URL.includes("your-project") || SUPABASE_URL === "https://placeholder.supabase.co";
@@ -19,9 +20,13 @@ export default function MensajeThreadPage() {
   const params = useParams<{ id: string }>();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [businessName, setBusinessName] = useState("");
+  const [businessId, setBusinessId] = useState("");
+  const [businessBranches, setBusinessBranches] = useState<BusinessBranch[]>([]);
+  const [bankEnabled, setBankEnabled] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [showReservationModal, setShowReservationModal] = useState(false);
 
   useEffect(() => {
     if (IS_DEMO) { setLoading(false); return; }
@@ -44,14 +49,16 @@ export default function MensajeThreadPage() {
         return;
       }
 
-      const { data: msgs } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", params.id)
-        .order("created_at", { ascending: true });
+      const [{ data: msgs }, { data: branches }] = await Promise.all([
+        supabase.from("messages").select("*").eq("conversation_id", params.id).order("created_at", { ascending: true }),
+        supabase.from("business_branches").select("*").eq("business_id", biz.id).order("name"),
+      ]);
 
       setConversation(conv as Conversation);
       setBusinessName(biz.name);
+      setBusinessId(biz.id);
+      setBusinessBranches((branches ?? []) as BusinessBranch[]);
+      setBankEnabled(!!biz.bank_clabe);
       setMessages((msgs ?? []) as ChatMessage[]);
       setLoading(false);
     };
@@ -87,12 +94,18 @@ export default function MensajeThreadPage() {
         <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-white/10 flex items-center justify-center flex-shrink-0">
           <User className="w-4 h-4 text-slate-500 dark:text-gray-400" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-semibold text-slate-900 dark:text-white text-sm truncate">{conversation.customer_name}</p>
           {conversation.product_name && (
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">Sobre: {conversation.product_name}</p>
           )}
         </div>
+        <button
+          onClick={() => setShowReservationModal(true)}
+          className="text-xs px-3 py-2 rounded-xl font-medium bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-500/20 transition-colors flex items-center gap-1.5 flex-shrink-0"
+        >
+          <Bookmark className="w-3.5 h-3.5" /> Crear apartado
+        </button>
       </div>
 
       <ChatThread
@@ -104,6 +117,17 @@ export default function MensajeThreadPage() {
         notificationLink={`/perfil/mensajes/${conversation.id}`}
         initialMessages={messages}
       />
+
+      {showReservationModal && (
+        <CreateReservationModal
+          conversationId={conversation.id}
+          businessId={businessId}
+          businessBranches={businessBranches}
+          bankEnabled={bankEnabled}
+          onCreated={() => setShowReservationModal(false)}
+          onClose={() => setShowReservationModal(false)}
+        />
+      )}
     </div>
   );
 }

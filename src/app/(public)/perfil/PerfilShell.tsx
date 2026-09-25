@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, Heart, MapPin, Settings, MessageSquare, MessageCircle, Bell, Ticket } from "lucide-react";
+import { LayoutDashboard, Package, Heart, MapPin, Settings, MessageSquare, MessageCircle, Bell, Ticket, Bookmark } from "lucide-react";
 import { useAuthUser } from "@/lib/hooks/use-auth-user";
 import AccountModeSwitcher from "@/components/ui/AccountModeSwitcher";
 import NotificationBellDropdown from "@/components/ui/NotificationBellDropdown";
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/perfil/pedidos",       label: "Mis compras",    icon: Package,         exact: false },
   { href: "/perfil/favoritos",     label: "Favoritos",      icon: Heart,           exact: false },
   { href: "/perfil/mensajes",      label: "Mis mensajes",   icon: MessageCircle,   exact: false },
+  { href: "/perfil/apartados",     label: "Mis apartados",  icon: Bookmark,        exact: false },
   { href: "/perfil/preguntas",     label: "Mis preguntas",  icon: MessageSquare,   exact: false },
   { href: "/perfil/notificaciones", label: "Notificaciones", icon: Bell,           exact: false },
   { href: "/perfil/cupones",       label: "Cupones",        icon: Ticket,          exact: false },

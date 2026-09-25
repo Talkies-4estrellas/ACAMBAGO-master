@@ -104,12 +104,13 @@ function priceGhostSuffix(raw: string): string {
  * si algo cambió desde que se abrió el modal de editar. El orden de las
  * fotos importa (la primera es la portada, reordenar SÍ es un cambio real);
  * el orden de las categorías no, así que se ordenan antes de comparar. */
-function buildFormSnapshot(data: { name: string; description: string; price: string; stock: string; categoryNames: string[]; imageUrls: string[] }): string {
+function buildFormSnapshot(data: { name: string; description: string; price: string; stock: string; depositAmount: string; categoryNames: string[]; imageUrls: string[] }): string {
   return JSON.stringify({
     name: data.name,
     description: data.description,
     price: data.price,
     stock: data.stock,
+    depositAmount: data.depositAmount,
     categories: [...data.categoryNames].sort(),
     images: data.imageUrls,
   });
@@ -169,6 +170,7 @@ export default function ProductsPage() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [depositAmount, setDepositAmount] = useState("");
   const [picks, setPicks] = useState<CategoryPick[]>([]);
   const [saving, setSaving] = useState(false);
   const [images, setImages] = useState<ImageSlot[]>([]);
@@ -216,7 +218,7 @@ export default function ProductsPage() {
 
   const openNew = () => {
     if (IS_DEMO) { toast("Conecta Supabase para agregar productos reales", { icon: "ℹ️" }); return; }
-    setEditing(null); setName(""); setDescription(""); setPrice(""); setStock("");
+    setEditing(null); setName(""); setDescription(""); setPrice(""); setStock(""); setDepositAmount("");
     setPicks(businessCategory ? namesToPicks([businessCategory], categoryTree) : []);
     setImages([]); setShowForm(true);
   };
@@ -226,6 +228,7 @@ export default function ProductsPage() {
     setEditing(p); setName(p.name); setDescription(p.description ?? "");
     setPrice(String(p.price));
     setStock(p.stock_quantity != null ? String(p.stock_quantity) : "");
+    setDepositAmount(p.deposit_amount != null ? String(p.deposit_amount) : "");
     const names = p.categories?.length ? p.categories : businessCategory ? [businessCategory] : [];
     setPicks(namesToPicks(names, categoryTree));
     const existing = p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [];
@@ -236,6 +239,7 @@ export default function ProductsPage() {
       description: p.description ?? "",
       price: String(p.price),
       stock: p.stock_quantity != null ? String(p.stock_quantity) : "",
+      depositAmount: p.deposit_amount != null ? String(p.deposit_amount) : "",
       categoryNames: names,
       imageUrls: existing,
     });
@@ -245,7 +249,7 @@ export default function ProductsPage() {
   const hasUnsavedChanges = () => {
     const currentImages = images.map((img) => img.url ?? `nueva:${img.file?.name}-${img.file?.size}`);
     const current = buildFormSnapshot({
-      name, description, price, stock,
+      name, description, price, stock, depositAmount,
       categoryNames: picksToNames(picks, categoryTree),
       imageUrls: currentImages,
     });
@@ -310,6 +314,16 @@ export default function ProductsPage() {
     // con fotos/cantidad/categoría, si el producto queda como borrador.
     const priceValue = price === "" ? 0 : parseFloat(price) || 0;
 
+    // NULL = este producto no admite apartado. El CHECK de la base es el
+    // respaldo real; esto solo evita un viaje al servidor con un dato que
+    // ya sabemos invalido.
+    const deposit_amount = depositAmount === "" ? null : parseFloat(depositAmount);
+    if (deposit_amount != null && (isNaN(deposit_amount) || deposit_amount <= 0 || deposit_amount > priceValue)) {
+      toast.error("El anticipo de apartado debe ser mayor a cero y no puede superar el precio del producto");
+      setSaving(false);
+      return;
+    }
+
     const finalUrls: string[] = [];
     for (const img of images) {
       if (img.url) {
@@ -356,11 +370,11 @@ export default function ProductsPage() {
       const originalUrls: string[] = editing.image_urls?.length ? editing.image_urls : editing.image_url ? [editing.image_url] : [];
       const removedUrls = originalUrls.filter((url) => !finalUrls.includes(url));
 
-      const { error } = await supabase.from("products").update({ name, description, price: priceValue, image_url, image_urls, stock_quantity, categories, is_draft }).eq("id", editing.id);
+      const { error } = await supabase.from("products").update({ name, description, price: priceValue, image_url, image_urls, stock_quantity, deposit_amount, categories, is_draft }).eq("id", editing.id);
       if (error) {
         toast.error(`Error al actualizar: ${error.message}`);
       } else {
-        setProducts((prev) => prev.map((p) => p.id === editing.id ? { ...p, name, description, price: priceValue, image_url, image_urls, stock_quantity: stock_quantity ?? undefined, categories, is_draft } : p));
+        setProducts((prev) => prev.map((p) => p.id === editing.id ? { ...p, name, description, price: priceValue, image_url, image_urls, stock_quantity: stock_quantity ?? undefined, deposit_amount: deposit_amount ?? undefined, categories, is_draft } : p));
         toast.success(is_draft ? "Producto actualizado como borrador: aún no se muestra a tus clientes" : "Producto actualizado");
         setShowForm(false);
 
@@ -373,7 +387,7 @@ export default function ProductsPage() {
         }
       }
     } else {
-      const { data, error } = await supabase.from("products").insert({ business_id: businessId, name, description, price: priceValue, image_url, image_urls, stock_quantity, categories, is_draft }).select().single();
+      const { data, error } = await supabase.from("products").insert({ business_id: businessId, name, description, price: priceValue, image_url, image_urls, stock_quantity, deposit_amount, categories, is_draft }).select().single();
       if (error) {
         toast.error(`Error al guardar: ${error.message}`);
       } else if (data) {
@@ -701,6 +715,11 @@ export default function ProductsPage() {
                 <label className="label">Cantidad en inventario</label>
                 <input type="number" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} className="input no-spinner" placeholder="Sin control de inventario" />
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Déjala vacía si no quieres llevar el conteo; se descuenta solo con cada venta.</p>
+              </div>
+              <div>
+                <label className="label">Monto de anticipo para apartado</label>
+                <input type="number" min="0" step="0.01" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} className="input no-spinner" placeholder="Sin apartado habilitado" />
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Déjalo vacío si este producto no admite apartado. El cliente paga este monto por adelantado y el resto al recoger o recibir.</p>
               </div>
               <div>
                 <label className="label">Categorías del producto</label>

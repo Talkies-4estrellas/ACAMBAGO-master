@@ -98,6 +98,9 @@ export interface Product {
   // Opcional en el tipo porque puede venir vacío en filas viejas si
   // supabase/product-categories.sql todavía no se corrió en este entorno.
   categories?: string[];
+  // Anticipo para apartar este producto sin pagarlo completo todavia.
+  // NULL/undefined = este producto no admite apartado.
+  deposit_amount?: number;
   created_at: string;
   updated_at: string;
 }
@@ -194,7 +197,7 @@ export interface ProductQuestion {
   created_at: string;
 }
 
-export type NotificationType = "order_status" | "new_order" | "question_answered" | "new_question" | "new_message" | "new_business_pending";
+export type NotificationType = "order_status" | "new_order" | "question_answered" | "new_question" | "new_message" | "new_business_pending" | "new_reservation" | "reservation_status";
 
 export interface Notification {
   id: string;
@@ -278,6 +281,44 @@ export interface Order {
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];
+}
+
+// Un apartado: el comprador paga un anticipo para reservar un producto
+// (de catalogo, con su propio deposit_amount ya configurado, o uno que el
+// vendedor confirma por chat que tiene aunque no este subido) y paga el
+// resto al recoger en sucursal o al recibirlo a domicilio. Ver
+// supabase/reservations.sql.
+export type ReservationStatus = "reservado" | "listo_en_sucursal" | "enviado_a_domicilio" | "entregado" | "cancelado";
+export type ReservationDeliveryMethod = "pickup_branch" | "home";
+export type ReservationPaymentMethod = "transfer" | "in_person";
+
+export interface Reservation {
+  id: string;
+  business_id: string;
+  conversation_id?: string;
+  user_id: string;
+  customer_name: string;
+  customer_phone?: string;
+  product_id?: string;
+  item_name: string;
+  item_description?: string;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  deposit_amount: number;
+  remaining_amount: number;
+  delivery_method: ReservationDeliveryMethod;
+  branch_id?: string;
+  address?: Record<string, string>;
+  payment_method: ReservationPaymentMethod;
+  deposit_paid_at?: string;
+  balance_paid_at?: string;
+  status: ReservationStatus;
+  cancelled_at?: string;
+  cancelled_by?: "customer" | "business";
+  created_at: string;
+  updated_at: string;
+  businesses?: Pick<Business, "name" | "address" | "owner_id" | "bank_name" | "bank_holder" | "bank_clabe">;
 }
 
 export interface QRPayload {
