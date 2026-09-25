@@ -8,6 +8,7 @@ import {
   DEMO_COUPONS_EXTRA,
 } from "@/lib/demo-data";
 import { Coupon, Business } from "@/types";
+import { parseDateOnly } from "@/lib/utils";
 
 const DEMO_BUSINESSES_ALL = [...DEMO_BUSINESSES, ...DEMO_BUSINESSES_EXTRA];
 
@@ -47,7 +48,7 @@ function CouponCard({ coupon }: { coupon: CouponWithBusiness }) {
   const business = coupon.business ?? DEMO_BUSINESSES_ALL.find((b) => b.id === coupon.business_id);
   const isPercent = coupon.discount_type === "percent";
   const discountLabel = isPercent ? `${coupon.value}% OFF` : `$${coupon.value} OFF`;
-  const expires = coupon.expires_at ? new Date(coupon.expires_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" }) : null;
+  const expires = coupon.expires_at ? parseDateOnly(coupon.expires_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short", year: "numeric" }) : null;
 
   const cardContent = (
     <>

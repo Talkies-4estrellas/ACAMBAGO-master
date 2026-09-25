@@ -1,7 +1,7 @@
 "use client";
 
 import { Coupon, QRPayload } from "@/types";
-import { formatDiscount } from "@/lib/utils";
+import { formatDiscount, parseDateOnly } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { QRCodeSVG } from "qrcode.react";
@@ -67,7 +67,7 @@ export default function CouponCard({ coupon, showQR = false, buyerUserId }: Prop
           {coupon.expires_at && (
             <div className="flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5" />
-              Vence: {format(new Date(coupon.expires_at), "dd/MM/yyyy", { locale: es })}
+              Vence: {format(parseDateOnly(coupon.expires_at), "dd/MM/yyyy", { locale: es })}
             </div>
           )}
           <div className="flex items-center gap-1">

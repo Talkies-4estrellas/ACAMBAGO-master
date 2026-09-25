@@ -38,6 +38,16 @@ export function formatDistance(km: number): string {
   return `${km.toFixed(1)} km`;
 }
 
+// expires_at siempre viene de un <input type="date"> (solo dia, sin
+// hora) - new Date(iso) lo interpreta como medianoche UTC, y formatearlo
+// con la hora local puede caer en el dia anterior (ej. Mexico, UTC-6).
+// Esto arma la fecha a partir de sus partes year/month/day, en la zona
+// local, para que el dia mostrado sea siempre el dia que se guardo.
+export function parseDateOnly(iso: string): Date {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function isCouponValid(coupon: {
   is_active: boolean;
   expires_at?: string | null;

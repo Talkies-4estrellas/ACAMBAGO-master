@@ -49,6 +49,28 @@ export default function PedidosPage() {
       });
   }, [isLoaded, user?.id]);
 
+  // Mantiene el estado al dia mientras se ve esta lista (el vendedor la marca
+  // "en camino"/"entregado", o el comprador mismo la cancela desde el
+  // seguimiento en otra pestana) - mismo patron que dashboard/business/orders.
+  useEffect(() => {
+    if (demoMode === "buyer" || IS_DEMO || !user) return;
+    const instanceId = Math.random().toString(36).slice(2);
+
+    const channel = supabase
+      .channel(`buyer-orders-${user.id}-${instanceId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const updated = payload.new as Order;
+          setOrders((prev) => prev.map((o) => (o.id === updated.id ? { ...o, status: updated.status } : o)));
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
   return (
     <div className="space-y-5">
       <div>
