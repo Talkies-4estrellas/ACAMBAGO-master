@@ -151,6 +151,13 @@ function SettingsContent() {
 
     setSaving(true);
 
+    // Fotos que ya estaban antes de este guardado - si se reemplazan por una
+    // nueva, hay que borrarlas de Storage o quedan huerfanas para siempre
+    // (mismo hueco que ya se arregló para las fotos de producto: el bucket
+    // business-images tampoco le da permiso de DELETE a la llave anónima).
+    const originalImageUrl = business.image_url;
+    const originalBannerUrl = business.banner_url;
+
     const uploadTo = async (blob: Blob, prefix: string) => {
       const ext = blob.type === "image/webp" ? "webp" : blob.type === "image/png" ? "png" : "jpg";
       const path = `${user.id}/${prefix}-${Date.now()}.${ext}`;
@@ -186,6 +193,17 @@ function SettingsContent() {
     const { error } = await supabase.from("businesses").update(payload).eq("id", business.id);
     if (!error) {
       toast.success("Cambios guardados");
+
+      const removedUrls: string[] = [];
+      if (originalImageUrl && originalImageUrl !== image_url) removedUrls.push(originalImageUrl);
+      if (originalBannerUrl && originalBannerUrl !== banner_url) removedUrls.push(originalBannerUrl);
+      if (removedUrls.length > 0) {
+        fetch("/api/businesses/images", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ business_id: business.id, urls: removedUrls }),
+        }).catch(() => {});
+      }
     } else {
       toast.error("Error al guardar: " + error.message);
     }
