@@ -15,7 +15,11 @@ interface Props {
   businessId: string;
   productId?: string;
   productName?: string;
-  variant?: "outline" | "solid";
+  // "outline": ancho completo, borde (secundario, junto a WhatsApp).
+  // "solid": compacta, para usarse junto a otros botones cortos.
+  // "solid-full": ancho completo, relleno - la acción principal cuando
+  // el producto no tiene apartado habilitado (ver product/[id]/page.tsx).
+  variant?: "outline" | "solid" | "solid-full";
 }
 
 export default function MessageSellerButton({ businessId, productId, productName, variant = "outline" }: Props) {
@@ -54,11 +58,13 @@ export default function MessageSellerButton({ businessId, productId, productName
   const className =
     variant === "solid"
       ? "btn-secondary flex items-center gap-2 text-sm"
+      : variant === "solid-full"
+      ? "w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white transition-colors disabled:opacity-50"
       : "w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold border border-slate-200 dark:border-white/15 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors";
 
   return (
     <button type="button" onClick={handleClick} disabled={loading} className={className}>
-      <MessageCircle className="w-4 h-4 text-brand-500" />
+      <MessageCircle className={`w-4 h-4 ${variant === "solid-full" ? "text-white" : "text-brand-500"}`} />
       {loading ? "Abriendo..." : "Enviar mensaje"}
     </button>
   );

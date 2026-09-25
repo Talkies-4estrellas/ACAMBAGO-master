@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
-import AddToCartButton from "./AddToCartButton";
 import FavoriteButton from "./FavoriteButton";
 
 interface ReelItem {
@@ -48,25 +47,19 @@ function ReelCard({ item, fixedWidth = true }: { item: ReelItem; fixedWidth?: bo
       <div className={`p-3 sm:p-4 flex flex-col flex-1 ${outOfStock ? "opacity-60" : ""}`}>
         <p className="text-xs text-slate-500 dark:text-gray-500 mb-1 truncate">{item.business_name}</p>
         {/* min-h reserva el espacio de 2 líneas: sin esto, un título de una
-            sola línea deja la tarjeta más baja que sus vecinas y el botón
-            termina en una altura distinta en cada tarjeta de la misma fila. */}
+            sola línea deja la tarjeta más baja que sus vecinas. */}
         <h3 className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2 leading-snug mb-2 min-h-[2.5rem]">{item.name}</h3>
-        <div className="flex items-center gap-2 mb-3">
+        {/* mt-auto fija el precio siempre al fondo de la tarjeta. Ya no hay
+            "Agregar al carrito" aqui a proposito - el carrito es la ultima
+            opcion de compra, no la primera; agregar al carrito solo se puede
+            hacer desde la ficha del producto, no directo desde la tarjeta. */}
+        <div className="flex items-center gap-2 mt-auto">
           <p className="text-brand-600 dark:text-brand-400 font-bold text-base">{formatPrice(item.price)}</p>
           {lowStock && (
             <span className="text-amber-600 dark:text-amber-400 text-xs font-medium">
               Últimas {item.stock_quantity}
             </span>
           )}
-        </div>
-        {/* z-10 para que el botón esté por encima del Link invisible; mt-auto
-            lo fija siempre al fondo de la tarjeta, sin importar cuánto texto
-            haya arriba. */}
-        <div className="relative z-10 mt-auto">
-          <AddToCartButton
-            product={{ id: item.id, business_id: item.business_id, name: item.name, price: item.price, image_url: item.image }}
-            disabled={outOfStock}
-          />
         </div>
       </div>
 

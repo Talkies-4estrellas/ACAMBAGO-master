@@ -88,7 +88,7 @@ export default function ReserveProductButton({ product, businessBranches, bankEn
       <button
         type="button"
         onClick={handleOpen}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold border-2 border-brand-500 text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white transition-colors"
       >
         <Bookmark className="w-4 h-4" />
         Apartar con {formatPrice(product.deposit_amount)} de anticipo

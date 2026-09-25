@@ -236,18 +236,20 @@ export default async function ProductPage({
             </p>
           )}
 
-          {/* Botones */}
+          {/* Botones. Preguntar/Apartar son la accion principal (solida);
+              Agregar al carrito pasa a secundaria (outline) y va al final
+              a proposito - el carrito es la ultima opcion, no la primera. */}
           <div className="space-y-3 pt-1">
-            <AddToCartButton
-              product={{ id: product.id, business_id: product.business_id, name: product.name, price: product.price, image_url: images[0] }}
-              disabled={!extra && product.stock_quantity === 0}
-            />
-            {!isDemoProduct && business && product.deposit_amount != null && (
+            {!isDemoProduct && business && product.deposit_amount != null ? (
               <ReserveProductButton
                 product={{ id: product.id, business_id: product.business_id, name: product.name, price: product.price, deposit_amount: product.deposit_amount }}
                 businessBranches={businessBranches}
                 bankEnabled={!!business.bank_clabe}
               />
+            ) : (
+              !isDemoProduct && business && (
+                <MessageSellerButton businessId={business.id} productId={product.id} productName={product.name} variant="solid-full" />
+              )
             )}
             {whatsappUrl && (
               <a
@@ -260,9 +262,14 @@ export default async function ProductPage({
                 Contactar por WhatsApp
               </a>
             )}
-            {!isDemoProduct && business && (
+            {!isDemoProduct && business && product.deposit_amount != null && (
               <MessageSellerButton businessId={business.id} productId={product.id} productName={product.name} />
             )}
+            <AddToCartButton
+              product={{ id: product.id, business_id: product.business_id, name: product.name, price: product.price, image_url: images[0] }}
+              disabled={!extra && product.stock_quantity === 0}
+              variant="outline"
+            />
           </div>
 
           {/* Garantías */}

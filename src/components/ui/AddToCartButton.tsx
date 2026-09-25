@@ -14,9 +14,14 @@ interface Props {
   };
   size?: "sm" | "md";
   disabled?: boolean;
+  // "solid" (default, usado en las tarjetas de catálogo) o "outline" - el
+  // carrito es la última opción de compra, no la primera; en la ficha de
+  // producto (product/[id]/page.tsx) va en outline y al final, después de
+  // Apartar/Preguntar y WhatsApp.
+  variant?: "solid" | "outline";
 }
 
-export default function AddToCartButton({ product, size = "md", disabled = false }: Props) {
+export default function AddToCartButton({ product, size = "md", disabled = false, variant = "solid" }: Props) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -51,7 +56,11 @@ export default function AddToCartButton({ product, size = "md", disabled = false
         added
           ? "bg-green-500 text-white"
           : disabled
-          ? "bg-slate-400 dark:bg-white/10 text-white"
+          ? variant === "outline"
+            ? "border border-slate-200 dark:border-white/15 text-slate-400 dark:text-gray-500"
+            : "bg-slate-400 dark:bg-white/10 text-white"
+          : variant === "outline"
+          ? "border border-slate-200 dark:border-white/15 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-white/5"
           : "bg-brand-600 hover:bg-brand-700 text-white"
       }`}
     >
