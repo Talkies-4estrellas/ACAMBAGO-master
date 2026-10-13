@@ -356,7 +356,7 @@ function TrackingContent() {
                 <p className="text-sm font-semibold text-slate-600 dark:text-gray-400">Mapa en vivo</p>
                 <p className="text-xs text-slate-400 dark:text-gray-500">(disponible en versión completa)</p>
               </div>
-              <div className="absolute inset-0 bg-[url('/acomdi.png')] bg-center bg-no-repeat opacity-5" />
+              <div className="absolute inset-0 bg-[url('/logo-acomdi-mark.svg')] bg-contain bg-center bg-no-repeat opacity-5" />
             </div>
             <div className="p-3 flex items-center justify-between border-t border-slate-100 dark:border-white/10">
               <span className="text-xs text-slate-500 dark:text-gray-400">{storeName} → Tu ubicación</span>

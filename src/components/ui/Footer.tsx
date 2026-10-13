@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <Link href="/" className="flex items-center">
             <div className="h-9 bg-white rounded-xl px-2 flex items-center shadow-sm">
-              <Image src="/acomdi.png" alt="Acom-Di" width={70} height={28} className="h-7 w-auto object-contain" />
+              <Image src="/logo-acomdi.svg" alt="Acom-Di" width={116} height={28} className="h-7 w-auto object-contain" />
             </div>
           </Link>
           <p className="text-sm text-slate-500 dark:text-gray-500">

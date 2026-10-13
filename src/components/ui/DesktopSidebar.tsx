@@ -52,7 +52,11 @@ export default function DesktopSidebar({ collapsed }: { collapsed: boolean }) {
       <div className={`p-3 border-b border-slate-200 dark:border-white/10 flex ${collapsed ? "flex-col items-center gap-2" : "items-center justify-between p-5"}`}>
         <Link href="/" className="flex items-center flex-shrink-0" title="Inicio">
           <div className={`bg-white rounded-xl flex items-center justify-center shadow-sm ${collapsed ? "h-11 w-11" : "h-10 px-3"}`}>
-            <Image src="/acomdi.png" alt="Acom-Di" width={collapsed ? 36 : 80} height={32} className={collapsed ? "h-7 w-auto object-contain" : "h-8 w-auto object-contain"} priority />
+            {collapsed ? (
+              <Image src="/logo-acomdi-mark.svg" alt="Acom-Di" width={28} height={28} className="h-7 w-auto object-contain" priority />
+            ) : (
+              <Image src="/logo-acomdi.svg" alt="Acom-Di" width={132} height={32} className="h-8 w-auto object-contain" priority />
+            )}
           </div>
         </Link>
         {user && actingAsSeller && <NotificationBell href="/dashboard/business/notificaciones" />}

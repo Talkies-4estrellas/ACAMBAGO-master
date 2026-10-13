@@ -15,7 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-5 border-b border-slate-200 dark:border-white/10">
           <Link href="/" className="flex items-center gap-2 mb-3">
             <div className="h-8 bg-white rounded-xl px-2 flex items-center shadow-sm">
-              <Image src="/acomdi.png" alt="Acom-Di" width={60} height={24} className="h-6 w-auto object-contain" />
+              <Image src="/logo-acomdi.svg" alt="Acom-Di" width={99} height={24} className="h-6 w-auto object-contain" />
             </div>
           </Link>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-2.5 py-1 rounded-full w-fit">
@@ -35,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="lg:hidden border-b border-slate-200 dark:border-white/10 px-4 py-3 flex items-center justify-between bg-white/90 dark:bg-[#040a14]/90 backdrop-blur-md">
           <div className="flex items-center gap-2">
             <div className="h-8 bg-white rounded-xl px-2 flex items-center shadow-sm">
-              <Image src="/acomdi.png" alt="Acom-Di" width={60} height={24} className="h-6 w-auto object-contain" />
+              <Image src="/logo-acomdi-mark.svg" alt="Acom-Di" width={24} height={24} className="h-6 w-auto object-contain" />
             </div>
             <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-2 py-0.5 rounded-full">
               Admin

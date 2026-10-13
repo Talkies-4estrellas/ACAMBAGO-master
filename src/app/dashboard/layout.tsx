@@ -73,7 +73,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center">
               <div className="h-9 bg-white rounded-xl px-2 flex items-center shadow-sm">
-                <Image src="/acomdi.png" alt="Acom-Di" width={70} height={28} className="h-7 w-auto object-contain" />
+                <Image src="/logo-acomdi.svg" alt="Acom-Di" width={116} height={28} className="h-7 w-auto object-contain" />
               </div>
             </Link>
           </div>
@@ -98,7 +98,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="flex items-center gap-2.5 flex-shrink-0">
             <Link href="/">
               <div className="h-8 bg-white rounded-xl px-2 flex items-center shadow-sm">
-                <Image src="/acomdi.png" alt="Acom-Di" width={60} height={24} className="h-6 w-auto object-contain" />
+                <Image src="/logo-acomdi-mark.svg" alt="Acom-Di" width={24} height={24} className="h-6 w-auto object-contain" />
               </div>
             </Link>
             <span className="text-xs font-semibold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-500/10 px-2 py-0.5 rounded-full border border-brand-200 dark:border-brand-500/20">

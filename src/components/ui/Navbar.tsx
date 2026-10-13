@@ -93,7 +93,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center flex-shrink-0">
             <div className="h-10 bg-white rounded-xl px-2.5 flex items-center shadow-sm">
-              <Image src="/acomdi.png" alt="Acom-Di" width={80} height={32} className="h-8 w-auto object-contain" priority />
+              <Image src="/logo-acomdi.svg" alt="Acom-Di" width={132} height={32} className="h-8 w-auto object-contain" priority />
             </div>
           </Link>
 
