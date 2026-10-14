@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import BrandLogo from "@/components/ui/BrandLogo";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,8 +7,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center">
-            <div className="h-12 bg-white rounded-2xl px-3 flex items-center">
-              <Image src="/logo-acomdi.svg" alt="Acom-Di" width={165} height={40} className="h-10 w-auto object-contain" />
+            <div className="h-12 bg-white dark:bg-transparent rounded-2xl px-3 dark:px-0 flex items-center">
+              <BrandLogo height={40} />
             </div>
           </Link>
         </div>

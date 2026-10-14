@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import BrandLogo from "@/components/ui/BrandLogo";
 
 export default function Footer() {
   return (
@@ -7,8 +7,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <Link href="/" className="flex items-center">
-            <div className="h-9 bg-white rounded-xl px-2 flex items-center shadow-sm">
-              <Image src="/logo-acomdi.svg" alt="Acom-Di" width={116} height={28} className="h-7 w-auto object-contain" />
+            <div className="h-9 bg-white dark:bg-transparent rounded-xl px-2 dark:px-0 flex items-center shadow-sm dark:shadow-none">
+              <BrandLogo height={28} />
             </div>
           </Link>
           <p className="text-sm text-slate-500 dark:text-gray-500">

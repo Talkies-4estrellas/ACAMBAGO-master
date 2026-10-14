@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import BrandLogo from "@/components/ui/BrandLogo";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, Tag, LayoutGrid, Map, Ticket, ShoppingCart, LogIn, UserPlus, LayoutDashboard, LogOut, Store, User } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
@@ -51,12 +51,8 @@ export default function DesktopSidebar({ collapsed }: { collapsed: boolean }) {
       {/* Logo */}
       <div className={`p-3 border-b border-slate-200 dark:border-white/10 flex ${collapsed ? "flex-col items-center gap-2" : "items-center justify-between p-5"}`}>
         <Link href="/" className="flex items-center flex-shrink-0" title="Inicio">
-          <div className={`bg-white rounded-xl flex items-center justify-center shadow-sm ${collapsed ? "h-11 w-11" : "h-10 px-3"}`}>
-            {collapsed ? (
-              <Image src="/logo-acomdi-mark.svg" alt="Acom-Di" width={28} height={28} className="h-7 w-auto object-contain" priority />
-            ) : (
-              <Image src="/logo-acomdi.svg" alt="Acom-Di" width={132} height={32} className="h-8 w-auto object-contain" priority />
-            )}
+          <div className={`bg-white dark:bg-transparent rounded-xl flex items-center justify-center shadow-sm dark:shadow-none ${collapsed ? "h-11 w-11" : "h-10 px-3 dark:px-0"}`}>
+            {collapsed ? <BrandLogo variant="mark" height={28} priority /> : <BrandLogo height={32} priority />}
           </div>
         </Link>
         {user && actingAsSeller && <NotificationBell href="/dashboard/business/notificaciones" />}

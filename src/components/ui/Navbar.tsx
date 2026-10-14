@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import BrandLogo from "@/components/ui/BrandLogo";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, X, LogIn, UserPlus, LayoutDashboard, LogOut, Store, User, Plus, Check } from "lucide-react";
@@ -92,8 +93,8 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center flex-shrink-0">
-            <div className="h-10 bg-white rounded-xl px-2.5 flex items-center shadow-sm">
-              <Image src="/logo-acomdi.svg" alt="Acom-Di" width={132} height={32} className="h-8 w-auto object-contain" priority />
+            <div className="h-10 bg-white dark:bg-transparent rounded-xl px-2.5 dark:px-0 flex items-center shadow-sm dark:shadow-none">
+              <BrandLogo height={32} priority />
             </div>
           </Link>
 

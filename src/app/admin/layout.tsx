@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import BrandLogo from "@/components/ui/BrandLogo";
 import { ShieldCheck, LayoutDashboard, Store, Users, User, Globe } from "lucide-react";
 import AdminNav from "./AdminNav";
 
@@ -14,8 +14,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Logo + badge */}
         <div className="p-5 border-b border-slate-200 dark:border-white/10">
           <Link href="/" className="flex items-center gap-2 mb-3">
-            <div className="h-8 bg-white rounded-xl px-2 flex items-center shadow-sm">
-              <Image src="/logo-acomdi.svg" alt="Acom-Di" width={99} height={24} className="h-6 w-auto object-contain" />
+            <div className="h-8 bg-white dark:bg-transparent rounded-xl px-2 dark:px-0 flex items-center shadow-sm dark:shadow-none">
+              <BrandLogo height={24} />
             </div>
           </Link>
           <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-2.5 py-1 rounded-full w-fit">
@@ -34,8 +34,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Mobile top bar */}
         <div className="lg:hidden border-b border-slate-200 dark:border-white/10 px-4 py-3 flex items-center justify-between bg-white/90 dark:bg-[#040a14]/90 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <div className="h-8 bg-white rounded-xl px-2 flex items-center shadow-sm">
-              <Image src="/logo-acomdi-mark.svg" alt="Acom-Di" width={24} height={24} className="h-6 w-auto object-contain" />
+            <div className="h-8 bg-white dark:bg-transparent rounded-xl px-2 dark:px-0 flex items-center shadow-sm dark:shadow-none">
+              <BrandLogo variant="mark" height={24} />
             </div>
             <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-2 py-0.5 rounded-full">
               Admin
