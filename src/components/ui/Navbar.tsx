@@ -93,7 +93,7 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center flex-shrink-0">
-            <div className="h-10 bg-white dark:bg-transparent rounded-xl px-2.5 dark:px-0 flex items-center shadow-sm dark:shadow-none">
+            <div className="h-10 flex items-center">
               <BrandLogo height={32} priority />
             </div>
           </Link>

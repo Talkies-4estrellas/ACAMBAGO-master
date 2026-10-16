@@ -72,7 +72,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="p-5 border-b border-slate-200 dark:border-white/10 space-y-3">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center">
-              <div className="h-9 bg-white dark:bg-transparent rounded-xl px-2 dark:px-0 flex items-center shadow-sm dark:shadow-none">
+              <div className="h-9 flex items-center">
                 <BrandLogo height={28} />
               </div>
             </Link>
@@ -97,7 +97,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="lg:hidden border-b border-slate-200 dark:border-white/10 px-4 py-3 flex items-center justify-between bg-white/90 dark:bg-[#040a14]/90 backdrop-blur-md sticky top-0 z-30">
           <div className="flex items-center gap-2.5 flex-shrink-0">
             <Link href="/">
-              <div className="h-8 bg-white dark:bg-transparent rounded-xl px-2 dark:px-0 flex items-center shadow-sm dark:shadow-none">
+              <div className="h-8 flex items-center">
                 <BrandLogo variant="mark" height={24} />
               </div>
             </Link>

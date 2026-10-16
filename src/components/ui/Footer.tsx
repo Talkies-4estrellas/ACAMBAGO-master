@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <Link href="/" className="flex items-center">
-            <div className="h-9 bg-white dark:bg-transparent rounded-xl px-2 dark:px-0 flex items-center shadow-sm dark:shadow-none">
+            <div className="h-9 flex items-center">
               <BrandLogo height={28} />
             </div>
           </Link>

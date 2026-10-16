@@ -14,7 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Logo + badge */}
         <div className="p-5 border-b border-slate-200 dark:border-white/10">
           <Link href="/" className="flex items-center gap-2 mb-3">
-            <div className="h-8 bg-white dark:bg-transparent rounded-xl px-2 dark:px-0 flex items-center shadow-sm dark:shadow-none">
+            <div className="h-8 flex items-center">
               <BrandLogo height={24} />
             </div>
           </Link>
@@ -34,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Mobile top bar */}
         <div className="lg:hidden border-b border-slate-200 dark:border-white/10 px-4 py-3 flex items-center justify-between bg-white/90 dark:bg-[#040a14]/90 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <div className="h-8 bg-white dark:bg-transparent rounded-xl px-2 dark:px-0 flex items-center shadow-sm dark:shadow-none">
+            <div className="h-8 flex items-center">
               <BrandLogo variant="mark" height={24} />
             </div>
             <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 px-2 py-0.5 rounded-full">

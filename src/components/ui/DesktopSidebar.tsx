@@ -51,7 +51,7 @@ export default function DesktopSidebar({ collapsed }: { collapsed: boolean }) {
       {/* Logo */}
       <div className={`p-3 border-b border-slate-200 dark:border-white/10 flex ${collapsed ? "flex-col items-center gap-2" : "items-center justify-between p-5"}`}>
         <Link href="/" className="flex items-center flex-shrink-0" title="Inicio">
-          <div className={`bg-white dark:bg-transparent rounded-xl flex items-center justify-center shadow-sm dark:shadow-none ${collapsed ? "h-11 w-11" : "h-10 px-3 dark:px-0"}`}>
+          <div className={`flex items-center justify-center ${collapsed ? "h-11 w-11" : "h-10"}`}>
             {collapsed ? <BrandLogo variant="mark" height={28} priority /> : <BrandLogo height={32} priority />}
           </div>
         </Link>
