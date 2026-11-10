@@ -1,7 +1,7 @@
 "use client";
 
-import { Coupon, QRPayload } from "@/types";
-import { formatDiscount, parseDateOnly } from "@/lib/utils";
+import { Coupon } from "@/types";
+import { formatDiscount, parseDateOnly, personalizeCouponQr } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { QRCodeSVG } from "qrcode.react";
@@ -21,15 +21,7 @@ export default function CouponCard({ coupon, showQR = false, buyerUserId }: Prop
   const isFull = coupon.limit_count ? coupon.used_count >= coupon.limit_count : false;
   const isValid = coupon.is_active && !isExpired && !isFull;
 
-  let qrValue = coupon.qr_data;
-  if (buyerUserId) {
-    try {
-      const payload = JSON.parse(coupon.qr_data) as QRPayload;
-      qrValue = JSON.stringify({ ...payload, user_id: buyerUserId });
-    } catch {
-      // qr_data mal formado; se muestra tal cual en vez de tronar
-    }
-  }
+  const qrValue = personalizeCouponQr(coupon.qr_data, buyerUserId);
 
   return (
     <div className={`card flex flex-col sm:flex-row overflow-hidden ${!isValid ? "opacity-60" : ""}`}>

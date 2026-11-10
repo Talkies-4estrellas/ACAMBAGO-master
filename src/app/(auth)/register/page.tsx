@@ -18,7 +18,13 @@ export default function RegisterPage() {
       </div>
 
       <button
-        onClick={() => router.push("/signup")}
+        onClick={() => {
+          // Si llegó aquí desde "Regístrate" en /login con un destino
+          // (?redirect_url=, p. ej. un cupón de la revista), se conserva:
+          // primero /onboarding crea el perfil y de ahí regresa a ese destino.
+          const back = new URLSearchParams(window.location.search).get("redirect_url");
+          router.push(back ? `/signup?redirect_url=${encodeURIComponent(`/onboarding?next=${encodeURIComponent(back)}`)}` : "/signup");
+        }}
         className="w-full flex items-center justify-center gap-2 p-4 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-bold transition-colors"
       >
         Crear cuenta <ArrowRight className="w-4 h-4" />

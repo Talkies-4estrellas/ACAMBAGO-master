@@ -33,7 +33,18 @@ export default function OnboardingPage() {
         );
       }
 
-      router.replace("/perfil");
+      // ?next= deja volver a donde estaba (p. ej. /cupon/ACAM-XXXX?origen=revista
+      // al registrarse desde un cupón de la revista). Solo del mismo dominio
+      // (Clerk a veces la manda como URL completa), nunca a otro sitio.
+      const next = new URLSearchParams(window.location.search).get("next");
+      let safeNext: string | null = null;
+      if (next) {
+        try {
+          const url = new URL(next, window.location.origin);
+          if (url.origin === window.location.origin) safeNext = url.pathname + url.search + url.hash;
+        } catch {}
+      }
+      router.replace(safeNext ?? "/perfil");
     };
 
     setup();

@@ -1,4 +1,5 @@
 import { customAlphabet } from "nanoid";
+import type { QRPayload } from "@/types";
 
 const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
 
@@ -36,6 +37,20 @@ export function distanceKm(lat1: number, lon1: number, lat2: number, lon2: numbe
 export function formatDistance(km: number): string {
   if (km < 1) return `${Math.round(km * 1000)} m`;
   return `${km.toFixed(1)} km`;
+}
+
+// QR personal de un cupon: el mismo qr_data pero con el user_id del comprador
+// incrustado, para que redeem_coupon pueda impedir que la misma persona lo
+// canjee dos veces. Sin user_id (o con un qr_data mal formado) se devuelve
+// tal cual, en vez de tronar.
+export function personalizeCouponQr(qrData: string, userId?: string | null): string {
+  if (!userId) return qrData;
+  try {
+    const payload = JSON.parse(qrData) as QRPayload;
+    return JSON.stringify({ ...payload, user_id: userId });
+  } catch {
+    return qrData;
+  }
 }
 
 // expires_at siempre viene de un <input type="date"> (solo dia, sin
